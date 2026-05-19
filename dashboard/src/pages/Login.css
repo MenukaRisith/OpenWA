@@ -1,12 +1,14 @@
 .login-container {
   min-height: 100vh;
   width: 100%;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 430px);
+  gap: 3rem;
   align-items: center;
   justify-content: center;
-  background: var(--bg-light);
-  padding: 2rem;
+  background:
+    linear-gradient(90deg, var(--ink) 0%, var(--ink) 50%, var(--background) 50%, var(--background) 100%);
+  padding: 3rem;
   position: fixed;
   top: 0;
   left: 0;
@@ -14,32 +16,95 @@
   bottom: 0;
 }
 
+.login-intro {
+  width: min(100%, 620px);
+  color: #f6faf8;
+}
+
+.login-eyebrow {
+  display: inline-flex;
+  margin-bottom: 1rem;
+  color: #7ce0ba;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.login-intro h1 {
+  max-width: 580px;
+  color: #ffffff;
+  font-size: clamp(2.5rem, 5vw, 5rem);
+  line-height: 0.98;
+}
+
+.login-intro p {
+  max-width: 520px;
+  margin: 1.25rem 0 0;
+  color: #c7d0cc;
+  font-size: 1rem;
+}
+
+.login-proof-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+.login-proof-grid span {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.8rem;
+  border: 1px solid var(--line-dark);
+  border-radius: var(--radius);
+  color: #e8efec;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
 .login-card {
   background: var(--bg-white);
-  border-radius: 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   box-shadow: var(--shadow-lg);
-  padding: 3rem;
+  padding: 2rem;
   width: 100%;
   max-width: 420px;
-  text-align: center;
+  text-align: left;
 }
 
 .login-logo {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
+  gap: 0.75rem;
+  margin-bottom: 2rem;
 }
 
-.logo-icon {
-  width: 127px;
-  height: 127px;
-  object-fit: contain;
+.login-brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius);
+  background: var(--accent);
+  color: white;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.login-logo strong {
+  color: var(--foreground);
+  font-size: 1.1rem;
 }
 
 .version-info {
+  flex-basis: 100%;
   font-size: 0.75rem;
   color: var(--text-muted);
   font-weight: 500;
@@ -92,7 +157,7 @@
 .input-wrapper input:focus {
   outline: none;
   border-color: var(--primary);
-  box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .input-wrapper input.error {
@@ -161,31 +226,83 @@
 }
 
 .login-footer {
-  margin-top: 2rem;
+  position: fixed;
+  left: 3rem;
+  bottom: 2rem;
+  max-width: 520px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   gap: 0.75rem;
   font-size: 0.75rem;
-  color: var(--text-muted);
-  text-align: center;
+  color: #aab6b0;
+  text-align: left;
 }
 
 .login-footer .github-link {
-  color: var(--text-muted);
+  color: #c7d0cc;
   transition: color 0.2s;
 }
 
 .login-footer .github-link:hover {
-  color: var(--primary);
+  color: #ffffff;
 }
 
 .login-footer a {
-  color: var(--text-muted);
+  color: #c7d0cc;
   font-size: 0.75rem;
   text-decoration: none;
 }
 
 .login-footer a:hover {
-  color: var(--text-secondary);
+  color: #ffffff;
+}
+
+@media (max-width: 860px) {
+  .login-container {
+    position: static;
+    min-height: 100vh;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    background: var(--background);
+    padding: 1.25rem;
+  }
+
+  .login-intro {
+    color: var(--foreground);
+  }
+
+  .login-intro h1 {
+    color: var(--foreground);
+    font-size: 2.4rem;
+  }
+
+  .login-intro p,
+  .login-proof-grid span {
+    color: var(--text-secondary);
+  }
+
+  .login-proof-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .login-proof-grid span {
+    border-color: var(--line);
+    background: var(--surface);
+  }
+
+  .login-card {
+    max-width: none;
+  }
+
+  .login-footer {
+    position: static;
+    color: var(--text-muted);
+    margin: 0;
+  }
+
+  .login-footer .github-link,
+  .login-footer a {
+    color: var(--text-muted);
+  }
 }

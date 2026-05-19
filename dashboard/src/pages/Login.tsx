@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Eye, EyeOff, Github } from 'lucide-react';
+import { Eye, EyeOff, LockKeyhole, MessageSquare, RadioTower } from 'lucide-react';
 import './Login.css';
 
 interface LoginProps {
@@ -47,9 +47,20 @@ export function Login({ onLogin }: LoginProps) {
 
   return (
     <div className="login-container">
+      <section className="login-intro" aria-label={t('common.appName')}>
+        <span className="login-eyebrow">{t('login.eyebrow')}</span>
+        <h1 className="aeon-display">{t('login.title')}</h1>
+        <p>{t('login.subtitle')}</p>
+        <div className="login-proof-grid">
+          <span><MessageSquare size={16} /> {t('login.proofSessions')}</span>
+          <span><RadioTower size={16} /> {t('login.proofWebhooks')}</span>
+          <span><LockKeyhole size={16} /> {t('login.proofAccess')}</span>
+        </div>
+      </section>
       <div className="login-card">
         <div className="login-logo">
-          <img src="/openwa_logo.webp" alt="OpenWA" className="logo-icon" />
+          <span className="login-brand-mark" aria-hidden="true">AW</span>
+          <strong>{t('common.appName')}</strong>
           <span className="version-info">
             {t('login.version', {
               version: __APP_VERSION__,
@@ -80,29 +91,10 @@ export function Login({ onLogin }: LoginProps) {
             {isLoading ? t('login.connecting') : t('login.connect')}
           </button>
         </form>
-
-        <p className="login-help">
-          {t('login.help')}{' '}
-          <a
-            href="https://github.com/rmyndharis/OpenWA/blob/main/docs/01-project-overview.md"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            {t('login.viewDocs')}
-          </a>
-        </p>
       </div>
 
       <footer className="login-footer">
         <span>{t('login.footer')}</span>
-        <a
-          href="https://github.com/rmyndharis/OpenWA"
-          target="_blank"
-          rel="noopener noreferrer"
-          className="github-link"
-        >
-          <Github size={18} />
-        </a>
       </footer>
     </div>
   );

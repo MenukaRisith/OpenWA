@@ -25,7 +25,7 @@
 
 .infra-card {
   background: var(--bg-white);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 1.5rem;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
@@ -71,7 +71,7 @@
 }
 
 .status-indicator.connected {
-  background: rgba(37, 211, 102, 0.1);
+  background: var(--accent-soft);
   color: var(--primary);
 }
 
@@ -118,7 +118,7 @@
 
 .radio-option.selected {
   border-color: var(--primary);
-  background: rgba(37, 211, 102, 0.05);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
 }
 
 .radio-option input {

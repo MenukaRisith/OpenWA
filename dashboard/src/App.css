@@ -1,51 +1,76 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,200..800;1,200..800&family=JetBrains+Mono:ital,wght@0,100..800;1,100..800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600;6..72,700&family=Sora:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap');
 
 :root {
-  --primary: #25d366;
-  --primary-hover: #1da851;
-  --bg-light: #f8fafc;
-  --bg-white: #ffffff;
-  --bg-card: #ffffff;
-  --text-primary: #0f172a; /* Slate 900 */
-  --text-secondary: #475569; /* Slate 600 */
-  --text-muted: #94a3b8; /* Slate 400 */
-  --border: #e2e8f0; /* Slate 200 */
-  --error: #ef4444;
-  --success: #22c55e;
-  --warning: #f59e0b;
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
-  --radius: 10px;
+  --font-sora: 'Sora', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-newsreader: 'Newsreader', Georgia, 'Times New Roman', serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+
+  --background: #f4f6f3;
+  --surface: #ffffff;
+  --surface-muted: #eef2ee;
+  --ink: #111816;
+  --foreground: #16201d;
+  --text-muted: #5b6763;
+  --line: #d9e0dc;
+  --line-strong: #bec9c3;
+  --line-dark: rgba(255, 255, 255, 0.16);
+  --accent: #0a7f5a;
+  --accent-hover: #076946;
+  --accent-soft: #e1f3eb;
+  --success: #12805c;
+  --warning: #b7791f;
+  --danger: #c2413f;
+
+  --primary: var(--accent);
+  --primary-hover: var(--accent-hover);
+  --bg-light: var(--background);
+  --bg-white: var(--surface);
+  --bg-card: var(--surface);
+  --text-primary: var(--foreground);
+  --text-secondary: #3e4c47;
+  --border: var(--line);
+  --error: var(--danger);
+  --shadow-sm: 0 1px 2px rgb(17 24 22 / 0.05);
+  --shadow-md: 0 8px 24px rgb(17 24 22 / 0.08);
+  --shadow-lg: 0 22px 54px rgb(17 24 22 / 0.14);
+  --radius: 8px;
 }
 
 /* Dark Mode */
 [data-theme='dark'] {
-  --bg-light: #0f172a; /* Slate 900 */
-  --bg-white: #1e293b; /* Slate 800 */
-  --bg-card: #1e293b;
-  --text-primary: #f1f5f9; /* Slate 100 */
-  --text-secondary: #cbd5e1; /* Slate 300 */
-  --text-muted: #64748b; /* Slate 500 */
-  --border: #334155; /* Slate 700 */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+  color-scheme: dark;
+  --background: #0c1210;
+  --surface: #141c19;
+  --surface-muted: #1c2723;
+  --ink: #050807;
+  --foreground: #f3f7f5;
+  --text-muted: #9aa8a2;
+  --line: #273530;
+  --line-strong: #3a4a44;
+  --accent-soft: #123c2e;
+  --text-secondary: #c7d0cc;
+  --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.28);
+  --shadow-md: 0 12px 30px rgb(0 0 0 / 0.3);
+  --shadow-lg: 0 24px 58px rgb(0 0 0 / 0.38);
 }
 
 /* System preference dark mode */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --bg-light: #0f172a;
-    --bg-white: #1e293b;
-    --bg-card: #1e293b;
-    --text-primary: #f1f5f9;
-    --text-secondary: #cbd5e1;
-    --text-muted: #64748b;
-    --border: #334155;
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.3);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.3), 0 2px 4px -2px rgb(0 0 0 / 0.3);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.4), 0 4px 6px -4px rgb(0 0 0 / 0.4);
+    color-scheme: dark;
+    --background: #0c1210;
+    --surface: #141c19;
+    --surface-muted: #1c2723;
+    --ink: #050807;
+    --foreground: #f3f7f5;
+    --text-muted: #9aa8a2;
+    --line: #273530;
+    --line-strong: #3a4a44;
+    --accent-soft: #123c2e;
+    --text-secondary: #c7d0cc;
+    --shadow-sm: 0 1px 2px rgb(0 0 0 / 0.28);
+    --shadow-md: 0 12px 30px rgb(0 0 0 / 0.3);
+    --shadow-lg: 0 24px 58px rgb(0 0 0 / 0.38);
   }
 }
 
@@ -55,20 +80,19 @@
 
 body {
   margin: 0;
-  font-family:
-    'Plus Jakarta Sans',
-    -apple-system,
-    BlinkMacSystemFont,
-    'Segoe UI',
-    Roboto,
-    Helvetica,
-    Arial,
-    sans-serif;
+  font-family: var(--font-sora);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: var(--bg-light);
   color: var(--text-primary);
   line-height: 1.6;
+  overflow-x: hidden;
+}
+
+.aeon-display {
+  font-family: var(--font-newsreader);
+  font-weight: 650;
+  letter-spacing: 0;
 }
 
 button {

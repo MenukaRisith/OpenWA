@@ -1,6 +1,8 @@
 .dashboard {
   padding: 2rem;
   width: 100%;
+  max-width: 1440px;
+  margin: 0 auto;
   box-sizing: border-box;
 }
 
@@ -18,22 +20,30 @@
 
 .status-badge {
   padding: 0.375rem 0.75rem;
-  border-radius: 9999px;
+  border-radius: var(--radius);
   font-size: 0.6875rem;
   font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.025em;
+  letter-spacing: 0.08em;
+  border: 1px solid transparent;
 }
 
 .status-badge.connected {
-  background: rgba(37, 211, 102, 0.1);
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 20%, transparent);
   color: var(--primary);
+}
+
+.status-badge.disconnected {
+  background: var(--surface-muted);
+  border-color: var(--line);
+  color: var(--text-secondary);
 }
 
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 1.5rem;
+  gap: 1rem;
   margin-bottom: 2rem;
   width: 100%;
 }
@@ -41,19 +51,19 @@
 .stat-card {
   position: relative;
   background: var(--bg-white);
-  border-radius: 12px;
-  padding: 1.5rem;
+  border-radius: var(--radius);
+  padding: 1.25rem;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
   min-width: 0;
   overflow: hidden;
   transition:
-    transform 0.2s ease,
+    border-color 0.2s ease,
     box-shadow 0.2s ease;
 }
 
 .stat-card:hover {
-  transform: translateY(-2px);
+  border-color: var(--line-strong);
   box-shadow: var(--shadow-md);
 }
 
@@ -65,35 +75,27 @@
 }
 
 .stat-icon {
-  color: var(--text-muted);
+  color: var(--accent);
   position: relative;
   z-index: 2;
 }
 
 .stat-watermark {
-  position: absolute;
-  right: -10px;
-  bottom: -15px;
-  width: 96px;
-  height: 96px;
-  opacity: 0.04;
-  color: var(--text-primary);
-  transform: rotate(-15deg);
-  pointer-events: none;
-  z-index: 1;
+  display: none;
 }
 
 .stat-label {
   font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   color: var(--text-secondary);
   position: relative;
   z-index: 2;
 }
 
 .stat-value {
+  font-family: var(--font-mono);
   font-size: 2rem;
   font-weight: 700;
   color: var(--text-primary);
@@ -122,7 +124,7 @@
 
 .sessions-section {
   background: var(--bg-white);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 1.5rem;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
@@ -161,18 +163,19 @@
 }
 
 .sessions-table .table-header {
-  background: var(--bg-light);
+  background: var(--surface-muted);
   border-radius: var(--radius) var(--radius) 0 0;
   font-size: 0.7rem;
   font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   border-bottom: 1px solid var(--border);
 }
 
 .sessions-table .table-row {
   border-bottom: 1px solid var(--border);
+  min-width: 0;
 }
 
 .sessions-table .table-row:last-child {
@@ -211,25 +214,28 @@
 .status-pill {
   display: inline-block;
   padding: 0.25rem 0.75rem;
-  border-radius: 9999px;
+  border-radius: var(--radius);
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 700;
   width: fit-content;
+  border: 1px solid transparent;
 }
 
 .status-pill.ready {
-  background: rgba(37, 211, 102, 0.1);
+  background: var(--accent-soft);
+  border-color: color-mix(in srgb, var(--accent) 20%, transparent);
   color: var(--primary);
 }
 
 .status-pill.connecting {
-  background: #fef3c7;
-  color: #d97706;
+  background: color-mix(in srgb, var(--warning) 15%, transparent);
+  color: var(--warning);
 }
 
 .status-pill.disconnected {
-  background: #f3f4f6;
-  color: var(--text-muted);
+  background: var(--surface-muted);
+  border-color: var(--line);
+  color: var(--text-secondary);
 }
 
 .last-active {
@@ -247,7 +253,7 @@
   padding: 0.375rem 0.75rem;
   font-size: 0.75rem;
   font-weight: 500;
-  border-radius: 6px;
+  border-radius: var(--radius);
   cursor: pointer;
   transition: all 0.2s;
   background: var(--bg-light);
@@ -256,18 +262,19 @@
 }
 
 .btn-sm:hover {
-  background: var(--bg-white);
-  border-color: var(--text-muted);
+  background: var(--surface);
+  border-color: var(--line-strong);
+  color: var(--foreground);
 }
 
 .btn-sm.danger {
-  color: #dc2626;
-  border-color: #fecaca;
-  background: #fef2f2;
+  color: var(--danger);
+  border-color: color-mix(in srgb, var(--danger) 24%, transparent);
+  background: color-mix(in srgb, var(--danger) 9%, transparent);
 }
 
 .btn-sm.danger:hover {
-  background: #fee2e2;
+  background: color-mix(in srgb, var(--danger) 14%, transparent);
 }
 
 @media (max-width: 1200px) {
@@ -286,16 +293,17 @@
     gap: 1rem;
   }
 
-  .table-header,
-  .table-row {
+  .sessions-table .table-header,
+  .sessions-table .table-row {
     grid-template-columns: 1fr 1fr 1fr;
     font-size: 0.8125rem;
+    padding: 0.875rem;
   }
 
-  .table-header span:nth-child(4),
-  .table-header span:nth-child(5),
-  .table-row > *:nth-child(4),
-  .table-row > *:nth-child(5) {
+  .sessions-table .table-header span:nth-child(4),
+  .sessions-table .table-header span:nth-child(5),
+  .sessions-table .table-row > *:nth-child(4),
+  .sessions-table .table-row > *:nth-child(5) {
     display: none;
   }
 }

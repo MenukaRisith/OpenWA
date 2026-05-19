@@ -1,7 +1,7 @@
 {
   "common": {
-    "appName": "OpenWA",
-    "appSubtitle": "WhatsApp API",
+    "appName": "Aeon Whatsapp",
+    "appSubtitle": "Operations API",
     "loading": "Loading...",
     "save": "Save",
     "cancel": "Cancel",
@@ -69,6 +69,12 @@
     "reload": "Reload Dashboard"
   },
   "login": {
+    "eyebrow": "Commercial messaging control",
+    "title": "Aeon Whatsapp control plane",
+    "subtitle": "Authenticate to manage WhatsApp sessions, webhook delivery, message testing, infrastructure status, and access keys from one operations-first workspace.",
+    "proofSessions": "Session uptime",
+    "proofWebhooks": "Webhook routing",
+    "proofAccess": "Keyed access",
     "apiKey": "API Key",
     "apiKeyPlaceholder": "Enter your API key",
     "apiKeyRequired": "API key is required",
@@ -78,7 +84,7 @@
     "connectionError": "Unable to connect to server. Please try again.",
     "help": "Need help?",
     "viewDocs": "View Documentation",
-    "footer": "Made with ❤️ by Yudhi Armyndharis and the OpenWA Community",
+    "footer": "Aeon Whatsapp dashboard",
     "version": "v{{version}} · {{date}}"
   },
   "dashboard": {
@@ -396,7 +402,7 @@
       "postgres": "PostgreSQL",
       "postgresDesc": "Production-ready database",
       "useBuiltIn": "Use Built-in PostgreSQL Container",
-      "builtInDesc": "OpenWA will manage a PostgreSQL container for you",
+      "builtInDesc": "Aeon Whatsapp will manage a PostgreSQL container for you",
       "dbName": "Database Name",
       "poolSize": "Pool Size",
       "ssl": "SSL Connection",
@@ -410,7 +416,7 @@
       "enable": "Enable Redis",
       "enableDesc": "Required for caching, session storage, and BullMQ queues",
       "useBuiltIn": "Use Built-in Redis Container",
-      "builtInDesc": "OpenWA will manage a Redis container for you",
+      "builtInDesc": "Aeon Whatsapp will manage a Redis container for you",
       "queueTitle": "Enable BullMQ Queue System",
       "queueDesc": "Use message queues for reliable message and webhook delivery",
       "statsTitle": "Queue Statistics",
@@ -432,7 +438,7 @@
       "s3": "Amazon S3",
       "s3Desc": "Cloud storage (S3 compatible)",
       "useBuiltIn": "Use Built-in MinIO Container",
-      "builtInDesc": "OpenWA will manage a MinIO (S3-compatible) container for you",
+      "builtInDesc": "Aeon Whatsapp will manage a MinIO (S3-compatible) container for you",
       "storagePath": "Storage Path",
       "bucket": "Bucket Name",
       "region": "Region",
@@ -485,7 +491,7 @@
     "configure": "Configure",
     "empty": {
       "title": "No Plugins Found",
-      "description": "Install plugins to extend OpenWA functionality"
+      "description": "Install plugins to extend Aeon Whatsapp functionality"
     },
     "config": {
       "title": "Configure {{name}}",

@@ -4,8 +4,10 @@
    ============================================= */
 
 .page-header {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1.75rem;
   width: 100%;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--line);
 }
 
 .page-header__top {
@@ -19,6 +21,7 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  min-width: 0;
 }
 
 .page-header__title-group h1 {
@@ -40,8 +43,9 @@
   margin: 0;
   margin-top: 0.5rem; /* Consistent 8px gap from title row */
   font-size: 0.9375rem;
-  color: var(--text-muted);
+  color: var(--text-secondary);
   line-height: 1.5;
+  max-width: 760px;
 }
 
 /* Mobile Responsive */

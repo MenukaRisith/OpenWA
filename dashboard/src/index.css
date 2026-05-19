@@ -1,7 +1,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;600;700&display=swap');
 
 :root {
-  font-family: 'Plus Jakarta Sans', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: var(--font-sora), system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.6;
   font-weight: 400;
 }
@@ -12,8 +12,7 @@ html[dir="rtl"] {
 }
 
 :root {
-
-  color-scheme: light dark;
+  color-scheme: light;
   color: var(--text-primary);
   background-color: var(--bg-light);
 
@@ -25,11 +24,11 @@ html[dir="rtl"] {
 
 a {
   font-weight: 500;
-  color: #646cff;
+  color: var(--accent);
   text-decoration: inherit;
 }
 a:hover {
-  color: #535bf2;
+  color: var(--accent-hover);
 }
 
 body {
@@ -39,19 +38,21 @@ body {
 }
 
 h1 {
-  font-size: 1.875rem;
-  font-weight: 700;
+  font-family: var(--font-newsreader);
+  font-size: clamp(1.875rem, 2vw, 2.45rem);
+  font-weight: 650;
   color: var(--text-primary);
   margin: 0;
-  letter-spacing: -0.025em;
+  letter-spacing: 0;
+  line-height: 1.08;
 }
 
 h2 {
   font-size: 0.8125rem;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--text-secondary);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.08em;
   margin: 0;
 }
 
@@ -69,29 +70,22 @@ button {
   font-size: 1em;
   font-weight: 500;
   font-family: inherit;
-  background-color: #1a1a1a;
+  background-color: var(--surface);
+  color: var(--foreground);
   cursor: pointer;
-  transition: border-color 0.25s;
+  transition:
+    background-color 0.2s,
+    border-color 0.2s,
+    color 0.2s,
+    box-shadow 0.2s;
 }
 button:hover {
-  border-color: #646cff;
+  border-color: var(--line-strong);
 }
 button:focus,
 button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+  outline: 3px solid color-mix(in srgb, var(--accent) 24%, transparent);
+  outline-offset: 2px;
 }
 
 /* Global select/dropdown styling */
@@ -116,13 +110,13 @@ select {
 }
 
 select:hover {
-  border-color: var(--primary, #25d366);
+  border-color: var(--primary, #0a7f5a);
 }
 
 select:focus {
   outline: none;
-  border-color: var(--primary, #25d366);
-  box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
+  border-color: var(--primary, #0a7f5a);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 select:disabled {
@@ -158,7 +152,8 @@ select:disabled {
 /* Modal Card */
 .modal {
   background: var(--bg-white, #fff);
-  border-radius: 16px;
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
   width: 90%;
   max-width: 480px;
@@ -219,9 +214,9 @@ select:disabled {
 
 .modal-body input:focus {
   outline: none;
-  border-color: var(--primary, #25d366);
+  border-color: var(--primary, #0a7f5a);
   background: var(--bg-white, #fff);
-  box-shadow: 0 0 0 3px rgba(37, 211, 102, 0.1);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .modal-footer {
@@ -358,4 +353,3 @@ code {
   right: auto;
   left: 1rem;
 }
-

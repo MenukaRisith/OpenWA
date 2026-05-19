@@ -43,7 +43,7 @@
 
 .keys-table-container {
   background: var(--bg-white);
-  border-radius: 12px;
+  border-radius: var(--radius);
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
   width: 100%;
@@ -80,7 +80,7 @@
 }
 
 .keys-table tbody tr.table-row:hover {
-  background: rgba(37, 211, 102, 0.05);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
 }
 
 .keys-table tbody tr.table-row:nth-child(even) {
@@ -88,7 +88,7 @@
 }
 
 .keys-table tbody tr.table-row:nth-child(even):hover {
-  background: rgba(37, 211, 102, 0.05);
+  background: color-mix(in srgb, var(--accent) 7%, transparent);
 }
 
 .name-cell {
@@ -144,7 +144,7 @@
 }
 
 .permission-badge:first-child:last-child {
-  background: rgba(37, 211, 102, 0.1);
+  background: var(--accent-soft);
   color: var(--primary);
 }
 
@@ -185,7 +185,7 @@
 
 .permissions-reference {
   background: var(--bg-white);
-  border-radius: 12px;
+  border-radius: var(--radius);
   padding: 1.5rem;
   box-shadow: var(--shadow-sm);
   border: 1px solid var(--border);
@@ -214,7 +214,7 @@
 .perm-item code {
   font-size: 0.8125rem;
   color: var(--primary);
-  background: rgba(37, 211, 102, 0.1);
+  background: var(--accent-soft);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   width: fit-content;
@@ -345,7 +345,7 @@
     padding: 1rem;
     background: var(--bg-white);
     border: 1px solid var(--border);
-    border-radius: 12px;
+    border-radius: var(--radius);
     box-shadow: var(--shadow-sm);
   }
 
@@ -411,7 +411,7 @@
   }
 
   .status-badge.active {
-    background: rgba(37, 211, 102, 0.1);
+    background: var(--accent-soft);
     color: var(--primary);
   }
 
