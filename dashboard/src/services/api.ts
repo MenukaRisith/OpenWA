@@ -1,4 +1,4 @@
-// API Service Layer for OpenWA Dashboard
+// API service layer for Aeon WhatsAPP API dashboard
 // Centralized API client with TypeScript types
 
 const API_BASE_URL = '/api';
@@ -164,13 +164,12 @@ export interface Settings {
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
 
-  // Dashboard users use bearer tokens. API key login is kept for backwards compatibility.
+  // Dashboard authentication is user/password only. API keys are managed resources, not dashboard sessions.
   const authToken = sessionStorage.getItem('openwa_auth_token');
-  const apiKey = sessionStorage.getItem('openwa_api_key');
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
-    ...(authToken ? { Authorization: `Bearer ${authToken}` } : apiKey ? { 'X-API-Key': apiKey } : {}),
+    ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
     ...options.headers,
   };
 

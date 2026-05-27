@@ -121,7 +121,7 @@ describe('AuthService', () => {
       const result = await service.findAll();
 
       expect(result).toHaveLength(2);
-      expect(repository.find).toHaveBeenCalledWith({ order: { createdAt: 'DESC' } });
+      expect(repository.find).toHaveBeenCalledWith({ where: {}, order: { createdAt: 'DESC' } });
     });
   });
 

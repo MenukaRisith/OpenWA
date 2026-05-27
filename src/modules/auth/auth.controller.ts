@@ -1,9 +1,10 @@
-import { Controller, Get, Post, Put, Delete, Body, Param, HttpCode, HttpStatus } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, Param, HttpCode, HttpStatus, ForbiddenException } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
 import { CreateApiKeyDto, UpdateApiKeyDto, ApiKeyResponseDto, ApiKeyCreatedResponseDto } from './dto';
-import { RequireRole } from './decorators/auth.decorators';
+import { CurrentUser, RequireRole } from './decorators/auth.decorators';
 import { ApiKeyRole } from './entities/api-key.entity';
+import { User } from './entities/user.entity';
 
 @ApiTags('auth')
 @ApiBearerAuth()
@@ -11,16 +12,27 @@ import { ApiKeyRole } from './entities/api-key.entity';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
+  private ownerScope(user?: User): string | undefined {
+    return user && user.role !== ApiKeyRole.ADMIN ? user.id : undefined;
+  }
+
+  private assertCanAssignRole(user: User | undefined, role: ApiKeyRole | undefined): void {
+    if (user?.role !== ApiKeyRole.ADMIN && role === ApiKeyRole.ADMIN) {
+      throw new ForbiddenException('Only admins can create or assign admin API keys');
+    }
+  }
+
   @Post()
-  @RequireRole(ApiKeyRole.ADMIN)
-  @ApiOperation({ summary: 'Create a new API key (admin only)' })
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @ApiOperation({ summary: 'Create a new API key' })
   @ApiResponse({
     status: 201,
     description: 'API key created',
     type: ApiKeyCreatedResponseDto,
   })
-  async create(@Body() dto: CreateApiKeyDto): Promise<ApiKeyCreatedResponseDto> {
-    const { apiKey, rawKey } = await this.authService.createApiKey(dto);
+  async create(@Body() dto: CreateApiKeyDto, @CurrentUser() user?: User): Promise<ApiKeyCreatedResponseDto> {
+    this.assertCanAssignRole(user, dto.role);
+    const { apiKey, rawKey } = await this.authService.createApiKey(dto, this.ownerScope(user));
     return {
       id: apiKey.id,
       name: apiKey.name,
@@ -38,11 +50,11 @@ export class AuthController {
   }
 
   @Get()
-  @RequireRole(ApiKeyRole.ADMIN)
-  @ApiOperation({ summary: 'List all API keys (admin only)' })
+  @RequireRole(ApiKeyRole.VIEWER)
+  @ApiOperation({ summary: 'List API keys' })
   @ApiResponse({ status: 200, type: [ApiKeyResponseDto] })
-  async findAll(): Promise<ApiKeyResponseDto[]> {
-    const keys = await this.authService.findAll();
+  async findAll(@CurrentUser() user?: User): Promise<ApiKeyResponseDto[]> {
+    const keys = await this.authService.findAll(this.ownerScope(user));
     return keys.map(k => ({
       id: k.id,
       name: k.name,
@@ -59,11 +71,11 @@ export class AuthController {
   }
 
   @Get(':id')
-  @RequireRole(ApiKeyRole.ADMIN)
-  @ApiOperation({ summary: 'Get API key details (admin only)' })
+  @RequireRole(ApiKeyRole.VIEWER)
+  @ApiOperation({ summary: 'Get API key details' })
   @ApiResponse({ status: 200, type: ApiKeyResponseDto })
-  async findOne(@Param('id') id: string): Promise<ApiKeyResponseDto> {
-    const k = await this.authService.findOne(id);
+  async findOne(@Param('id') id: string, @CurrentUser() user?: User): Promise<ApiKeyResponseDto> {
+    const k = await this.authService.findOne(id, this.ownerScope(user));
     return {
       id: k.id,
       name: k.name,
@@ -80,11 +92,12 @@ export class AuthController {
   }
 
   @Put(':id')
-  @RequireRole(ApiKeyRole.ADMIN)
-  @ApiOperation({ summary: 'Update API key (admin only)' })
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @ApiOperation({ summary: 'Update API key' })
   @ApiResponse({ status: 200, type: ApiKeyResponseDto })
-  async update(@Param('id') id: string, @Body() dto: UpdateApiKeyDto): Promise<ApiKeyResponseDto> {
-    const k = await this.authService.update(id, dto);
+  async update(@Param('id') id: string, @Body() dto: UpdateApiKeyDto, @CurrentUser() user?: User): Promise<ApiKeyResponseDto> {
+    this.assertCanAssignRole(user, dto.role);
+    const k = await this.authService.update(id, dto, this.ownerScope(user));
     return {
       id: k.id,
       name: k.name,
@@ -101,20 +114,20 @@ export class AuthController {
   }
 
   @Delete(':id')
-  @RequireRole(ApiKeyRole.ADMIN)
+  @RequireRole(ApiKeyRole.OPERATOR)
   @HttpCode(HttpStatus.NO_CONTENT)
-  @ApiOperation({ summary: 'Delete API key (admin only)' })
+  @ApiOperation({ summary: 'Delete API key' })
   @ApiResponse({ status: 204, description: 'API key deleted' })
-  async delete(@Param('id') id: string): Promise<void> {
-    await this.authService.delete(id);
+  async delete(@Param('id') id: string, @CurrentUser() user?: User): Promise<void> {
+    await this.authService.delete(id, this.ownerScope(user));
   }
 
   @Post(':id/revoke')
-  @RequireRole(ApiKeyRole.ADMIN)
-  @ApiOperation({ summary: 'Revoke API key (admin only)' })
+  @RequireRole(ApiKeyRole.OPERATOR)
+  @ApiOperation({ summary: 'Revoke API key' })
   @ApiResponse({ status: 200, type: ApiKeyResponseDto })
-  async revoke(@Param('id') id: string): Promise<ApiKeyResponseDto> {
-    const k = await this.authService.revoke(id);
+  async revoke(@Param('id') id: string, @CurrentUser() user?: User): Promise<ApiKeyResponseDto> {
+    const k = await this.authService.revoke(id, this.ownerScope(user));
     return {
       id: k.id,
       name: k.name,

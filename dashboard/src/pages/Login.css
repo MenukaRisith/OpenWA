@@ -126,31 +126,18 @@
   text-align: left;
 }
 
-.login-mode-switch {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.25rem;
-  padding: 0.25rem;
+.login-mode-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 38px;
+  padding: 0 0.75rem;
   margin-bottom: 1.5rem;
   background: var(--bg-secondary);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-}
-
-.login-mode-switch button {
-  min-height: 38px;
-  border: none;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--text-secondary);
-  font-weight: 700;
-  cursor: pointer;
-}
-
-.login-mode-switch button.active {
-  background: var(--bg-white);
   color: var(--text-primary);
-  box-shadow: var(--shadow-sm);
+  font-weight: 700;
 }
 
 .input-group {

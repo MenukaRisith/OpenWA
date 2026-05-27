@@ -35,7 +35,7 @@ const allNavItems = [
   { to: '/', icon: LayoutDashboard, key: 'dashboard' as const, adminOnly: false },
   { to: '/sessions', icon: Smartphone, key: 'sessions' as const, adminOnly: false },
   { to: '/webhooks', icon: Webhook, key: 'webhooks' as const, adminOnly: false },
-  { to: '/api-keys', icon: Key, key: 'apiKeys' as const, adminOnly: true },
+  { to: '/api-keys', icon: Key, key: 'apiKeys' as const, adminOnly: false },
   { to: '/users', icon: UserCog, key: 'users' as const, adminOnly: true },
   { to: '/message-tester', icon: Send, key: 'messageTester' as const, adminOnly: false },
   { to: '/infrastructure', icon: Server, key: 'infrastructure' as const, adminOnly: false },

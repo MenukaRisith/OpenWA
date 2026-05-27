@@ -10,6 +10,7 @@ import {
 import { Plus, Copy, RefreshCw, Trash2, Eye, EyeOff, Loader2, X, Check, KeyRound, AlertTriangle } from 'lucide-react';
 import type { ApiKey } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
+import { useRole } from '../hooks/useRole';
 import { useApiKeysQuery, useCreateApiKeyMutation, useDeleteApiKeyMutation, useRevokeApiKeyMutation } from '../hooks/queries';
 import { PageHeader } from '../components/PageHeader';
 import './ApiKeys.css';
@@ -31,6 +32,7 @@ const columnHelper = createColumnHelper<ApiKey>();
 export function ApiKeys() {
   const { t } = useTranslation();
   useDocumentTitle(t('apiKeys.title'));
+  const { isAdmin, canWrite } = useRole();
   const { data: apiKeys = [], isLoading: loading } = useApiKeysQuery();
   const createMutation = useCreateApiKeyMutation();
   const deleteMutation = useDeleteApiKeyMutation();
@@ -48,6 +50,7 @@ export function ApiKeys() {
   const isMobile = windowWidth < 768;
   const isSmall = windowWidth < 640;
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({});
+  const availableRoles = isAdmin ? roleNames : roleNames.filter(role => role !== 'admin');
 
   useEffect(() => {
     setColumnVisibility({ key: !isSmall, lastUsed: !isMobile });
@@ -158,7 +161,7 @@ export function ApiKeys() {
               >
                 {copied === apiKey.id ? <Check size={16} /> : <Copy size={16} />}
               </button>
-              {apiKey.isActive && (
+              {canWrite && apiKey.isActive && (
                 <button
                   className="icon-btn"
                   onClick={() => setConfirmAction({ type: 'revoke', id: apiKey.id, name: apiKey.name })}
@@ -167,19 +170,21 @@ export function ApiKeys() {
                   <RefreshCw size={16} />
                 </button>
               )}
-              <button
-                className="icon-btn danger"
-                onClick={() => setConfirmAction({ type: 'delete', id: apiKey.id, name: apiKey.name })}
-                title={t('apiKeys.actions.delete')}
-              >
-                <Trash2 size={16} />
-              </button>
+              {canWrite && (
+                <button
+                  className="icon-btn danger"
+                  onClick={() => setConfirmAction({ type: 'delete', id: apiKey.id, name: apiKey.name })}
+                  title={t('apiKeys.actions.delete')}
+                >
+                  <Trash2 size={16} />
+                </button>
+              )}
             </span>
           );
         },
       }),
     ],
-    [visibleKeys, copied, t],
+    [visibleKeys, copied, canWrite, t],
   );
 
   const table = useReactTable({
@@ -207,10 +212,12 @@ export function ApiKeys() {
         title={t('apiKeys.title')}
         subtitle={t('apiKeys.subtitle')}
         actions={
-          <button className="btn-primary" onClick={() => setShowModal(true)}>
-            <Plus size={18} />
-            {t('apiKeys.createBtn')}
-          </button>
+          canWrite ? (
+            <button className="btn-primary" onClick={() => setShowModal(true)}>
+              <Plus size={18} />
+              {t('apiKeys.createBtn')}
+            </button>
+          ) : null
         }
       />
 
@@ -267,7 +274,7 @@ export function ApiKeys() {
                   />
                   <label>{t('common.role')}</label>
                   <select value={newKey.role} onChange={e => setNewKey({ ...newKey, role: e.target.value })}>
-                    {roleNames.map(r => (
+                    {availableRoles.map(r => (
                       <option key={r} value={r}>
                         {t(`apiKeys.roles.${r}`)}
                       </option>

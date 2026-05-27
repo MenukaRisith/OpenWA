@@ -158,14 +158,14 @@ export class AuthService implements OnModuleInit {
     return this.seedUser(username, 'Configured Admin', configuredPassword, ApiKeyRole.ADMIN);
   }
 
-  async createApiKey(dto: CreateApiKeyDto): Promise<{ apiKey: ApiKey; rawKey: string }> {
+  async createApiKey(dto: CreateApiKeyDto, ownerUserId?: string): Promise<{ apiKey: ApiKey; rawKey: string }> {
     const rawKey = `owa_k1_${randomBytes(32).toString('hex')}`;
     const keyHash = this.hashKey(rawKey);
     const keyPrefix = rawKey.substring(0, 12);
 
     const apiKey = this.apiKeyRepository.create({
       name: dto.name,
-      ownerUserId: null,
+      ownerUserId: ownerUserId || null,
       keyHash,
       keyPrefix,
       role: dto.role || ApiKeyRole.OPERATOR,
@@ -184,22 +184,23 @@ export class AuthService implements OnModuleInit {
     return { apiKey: saved, rawKey };
   }
 
-  async findAll(): Promise<ApiKey[]> {
+  async findAll(ownerUserId?: string): Promise<ApiKey[]> {
     return this.apiKeyRepository.find({
+      where: ownerUserId ? { ownerUserId } : {},
       order: { createdAt: 'DESC' },
     });
   }
 
-  async findOne(id: string): Promise<ApiKey> {
-    const apiKey = await this.apiKeyRepository.findOne({ where: { id } });
+  async findOne(id: string, ownerUserId?: string): Promise<ApiKey> {
+    const apiKey = await this.apiKeyRepository.findOne({ where: ownerUserId ? { id, ownerUserId } : { id } });
     if (!apiKey) {
       throw new NotFoundException(`API key with id '${id}' not found`);
     }
     return apiKey;
   }
 
-  async update(id: string, dto: UpdateApiKeyDto): Promise<ApiKey> {
-    const apiKey = await this.findOne(id);
+  async update(id: string, dto: UpdateApiKeyDto, ownerUserId?: string): Promise<ApiKey> {
+    const apiKey = await this.findOne(id, ownerUserId);
 
     if (dto.name) apiKey.name = dto.name;
     if (dto.role) apiKey.role = dto.role;
@@ -210,8 +211,8 @@ export class AuthService implements OnModuleInit {
     return this.apiKeyRepository.save(apiKey);
   }
 
-  async delete(id: string): Promise<void> {
-    const apiKey = await this.findOne(id);
+  async delete(id: string, ownerUserId?: string): Promise<void> {
+    const apiKey = await this.findOne(id, ownerUserId);
     await this.apiKeyRepository.remove(apiKey);
     this.logger.log(`API key deleted: ${apiKey.name}`, {
       keyId: id,
@@ -219,8 +220,8 @@ export class AuthService implements OnModuleInit {
     });
   }
 
-  async revoke(id: string): Promise<ApiKey> {
-    const apiKey = await this.findOne(id);
+  async revoke(id: string, ownerUserId?: string): Promise<ApiKey> {
+    const apiKey = await this.findOne(id, ownerUserId);
     apiKey.isActive = false;
     return this.apiKeyRepository.save(apiKey);
   }

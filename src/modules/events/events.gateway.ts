@@ -10,7 +10,12 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { AuthService } from '../auth/auth.service';
+import { ApiKey, ApiKeyRole } from '../auth/entities/api-key.entity';
+import { User } from '../auth/entities/user.entity';
+import { Session } from '../session/entities/session.entity';
 import type {
   WSClientMessage,
   WSSubscribeRequest,
@@ -22,6 +27,8 @@ import type {
   WSPongResponse,
 } from './dto/ws-messages.dto';
 import { SUBSCRIBABLE_EVENTS, buildRoomName } from './dto/ws-messages.dto';
+
+type SocketPrincipal = { apiKey?: ApiKey; user?: User };
 
 @WebSocketGateway({
   cors: {
@@ -35,35 +42,36 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
   private logger = new Logger('EventsGateway');
 
-  constructor(private readonly authService: AuthService) {}
+  constructor(
+    private readonly authService: AuthService,
+    @InjectRepository(Session, 'data')
+    private readonly sessionRepository: Repository<Session>,
+  ) {}
 
   afterInit() {
     this.logger.log('WebSocket Gateway initialized');
   }
 
   async handleConnection(client: Socket) {
-    // Extract API key from header or query param
-    const apiKey = (client.handshake.headers['x-api-key'] as string) || (client.handshake.query.apiKey as string);
+    const credentials = this.extractCredentials(client);
 
-    if (!apiKey) {
-      this.logger.warn(`Client ${client.id} rejected: No API key provided`);
-      client.emit('message', this.createError('UNAUTHORIZED', 'API key required'));
+    if (!credentials) {
+      this.logger.warn(`Client ${client.id} rejected: No credentials provided`);
+      client.emit('message', this.createError('UNAUTHORIZED', 'User token or API key required'));
       client.disconnect();
       return;
     }
 
     try {
-      const validKey = await this.authService.validateApiKey(apiKey);
-      if (!validKey) {
-        this.logger.warn(`Client ${client.id} rejected: Invalid API key`);
-        client.emit('message', this.createError('UNAUTHORIZED', 'Invalid API key'));
-        client.disconnect();
-        return;
+      if (credentials.type === 'user') {
+        const user = await this.authService.validateUserToken(credentials.value);
+        (client.data as SocketPrincipal).user = user;
+        this.logger.log(`Client connected: ${client.id} (user: ${user.username})`);
+      } else {
+        const validKey = await this.authService.validateApiKey(credentials.value);
+        (client.data as SocketPrincipal).apiKey = validKey;
+        this.logger.log(`Client connected: ${client.id} (key: ${validKey.name})`);
       }
-
-      // Store API key info on socket for later use
-      (client.data as { apiKey: unknown }).apiKey = validKey;
-      this.logger.log(`Client connected: ${client.id} (key: ${validKey.name})`);
     } catch (error) {
       this.logger.warn(`Client ${client.id} rejected: Auth error`, {
         error: error instanceof Error ? error.message : String(error),
@@ -78,7 +86,7 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
   }
 
   @SubscribeMessage('message')
-  handleMessage(@ConnectedSocket() client: Socket, @MessageBody() message: WSClientMessage) {
+  async handleMessage(@ConnectedSocket() client: Socket, @MessageBody() message: WSClientMessage) {
     switch (message.type) {
       case 'subscribe':
         return this.handleSubscribe(client, message);
@@ -95,12 +103,17 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
     }
   }
 
-  private handleSubscribe(client: Socket, message: WSSubscribeRequest): WSSubscribedResponse | WSErrorResponse {
+  private async handleSubscribe(client: Socket, message: WSSubscribeRequest): Promise<WSSubscribedResponse | WSErrorResponse> {
     const { sessionId, events, requestId } = message;
 
     // Validate sessionId
     if (!sessionId || typeof sessionId !== 'string') {
       return this.createError('INVALID_SESSION', 'sessionId is required', requestId);
+    }
+
+    const canAccessSession = await this.canAccessSession(client, sessionId);
+    if (!canAccessSession) {
+      return this.createError('UNAUTHORIZED', 'Not authorized for this session', requestId);
     }
 
     // Validate events
@@ -178,6 +191,52 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
       requestId,
       timestamp: new Date().toISOString(),
     };
+  }
+
+  private extractCredentials(client: Socket): { type: 'apiKey' | 'user'; value: string } | undefined {
+    const auth = client.handshake.auth as { apiKey?: string; token?: string } | undefined;
+    const headerApiKey = client.handshake.headers['x-api-key'];
+    const headerAuth = client.handshake.headers.authorization;
+    const apiKey =
+      auth?.apiKey ||
+      (typeof headerApiKey === 'string' ? headerApiKey : undefined) ||
+      (typeof client.handshake.query.apiKey === 'string' ? client.handshake.query.apiKey : undefined);
+
+    if (apiKey) return { type: 'apiKey', value: apiKey };
+
+    const bearerToken =
+      auth?.token ||
+      (typeof client.handshake.query.token === 'string' ? client.handshake.query.token : undefined) ||
+      (typeof headerAuth === 'string' && headerAuth.toLowerCase().startsWith('bearer ')
+        ? headerAuth.slice(7).trim()
+        : undefined);
+
+    if (!bearerToken) return undefined;
+    return {
+      type: bearerToken.startsWith('aeon_u1_') || bearerToken.startsWith('owa_u1_') ? 'user' : 'apiKey',
+      value: bearerToken,
+    };
+  }
+
+  private async canAccessSession(client: Socket, sessionId: string): Promise<boolean> {
+    const principal = client.data as SocketPrincipal;
+
+    if (principal.user) {
+      if (principal.user.role === ApiKeyRole.ADMIN) return true;
+      return !!(await this.sessionRepository.findOne({ where: { id: sessionId, ownerUserId: principal.user.id } }));
+    }
+
+    if (principal.apiKey) {
+      if (principal.apiKey.allowedSessions?.length && !principal.apiKey.allowedSessions.includes(sessionId)) {
+        return false;
+      }
+      if (!principal.apiKey.ownerUserId || principal.apiKey.role === ApiKeyRole.ADMIN) return true;
+      return !!(await this.sessionRepository.findOne({
+        where: { id: sessionId, ownerUserId: principal.apiKey.ownerUserId },
+      }));
+    }
+
+    return false;
   }
 
   // ========== Event Emission Methods (room-based) ==========

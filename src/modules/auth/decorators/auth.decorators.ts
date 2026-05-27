@@ -33,8 +33,17 @@ export const CurrentApiKey = createParamDecorator((data: unknown, ctx: Execution
  * @example @CurrentUser() user: User
  */
 export const CurrentUser = createParamDecorator((data: unknown, ctx: ExecutionContext): User | undefined => {
-  const request = ctx.switchToHttp().getRequest<Request & { user?: User }>();
-  return request.user;
+  const request = ctx.switchToHttp().getRequest<Request & { apiKey?: ApiKey; user?: User }>();
+  if (request.user) return request.user;
+
+  if (request.apiKey?.ownerUserId) {
+    return {
+      id: request.apiKey.ownerUserId,
+      role: request.apiKey.role,
+    } as User;
+  }
+
+  return undefined;
 });
 
 /**

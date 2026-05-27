@@ -91,6 +91,13 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
   }
 
   async create(dto: CreateSessionDto, ownerUserId?: string): Promise<Session> {
+    if (ownerUserId) {
+      const existingOwnedSessions = await this.sessionRepository.count({ where: { ownerUserId } });
+      if (existingOwnedSessions >= 1) {
+        throw new ConflictException('Client users can create only one WhatsApp session');
+      }
+    }
+
     // Check if session with same name exists
     const existing = await this.sessionRepository.findOne({
       where: { name: dto.name },

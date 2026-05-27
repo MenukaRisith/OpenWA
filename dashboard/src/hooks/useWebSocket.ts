@@ -36,11 +36,10 @@ export function useWebSocket(events: WebSocketEvents = {}) {
   const connect = useCallback(() => {
     if (socketRef.current?.connected) return;
 
-    // Get API key from sessionStorage (same as api.ts)
-    const apiKey = sessionStorage.getItem('openwa_api_key');
+    const authToken = sessionStorage.getItem('openwa_auth_token');
 
-    if (!apiKey) {
-      console.warn('[WebSocket] No API key found, skipping connection');
+    if (!authToken) {
+      console.warn('[WebSocket] No user token found, skipping connection');
       return;
     }
 
@@ -50,13 +49,13 @@ export function useWebSocket(events: WebSocketEvents = {}) {
       reconnectionAttempts: 5,
       reconnectionDelay: 1000,
       auth: {
-        apiKey,
+        token: authToken,
       },
       extraHeaders: {
-        'X-API-Key': apiKey,
+        Authorization: `Bearer ${authToken}`,
       },
       query: {
-        apiKey,
+        token: authToken,
       },
     });
 

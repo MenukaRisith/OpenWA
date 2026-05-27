@@ -31,48 +31,18 @@ const queryClient = new QueryClient({
 
 function AppContent() {
   // Initialize from sessionStorage to avoid setState in effect
-  const savedKey = sessionStorage.getItem('openwa_api_key');
   const savedToken = sessionStorage.getItem('openwa_auth_token');
-  const [isAuthenticated, setIsAuthenticated] = useState(!!savedToken || !!savedKey);
-  const [, setApiKey] = useState(savedKey || '');
+  const [isAuthenticated, setIsAuthenticated] = useState(!!savedToken);
   const { setRole, role } = useRole();
 
-  const handleLogin = async (auth: { token?: string; apiKey?: string; role?: UserRole; username?: string }) => {
-    if (auth.token) {
-      sessionStorage.setItem('openwa_auth_token', auth.token);
-      sessionStorage.removeItem('openwa_api_key');
-      setApiKey('');
-      setRole(auth.role || 'viewer');
-      setIsAuthenticated(true);
-      return;
-    }
-
-    if (!auth.apiKey) return;
-
-    setApiKey(auth.apiKey);
-    sessionStorage.setItem('openwa_api_key', auth.apiKey);
-    sessionStorage.removeItem('openwa_auth_token');
-
-    // Fetch the role from API
-    try {
-      const response = await fetch('/api/auth/validate', {
-        method: 'POST',
-        headers: { 'X-API-Key': auth.apiKey },
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setRole(data.role as UserRole);
-      }
-    } catch {
-      // Default to viewer if we can't fetch role
-      setRole('viewer');
-    }
-
+  const handleLogin = async (auth: { token: string; role: UserRole; username: string }) => {
+    sessionStorage.setItem('openwa_auth_token', auth.token);
+    sessionStorage.removeItem('openwa_api_key');
+    setRole(auth.role || 'viewer');
     setIsAuthenticated(true);
   };
 
   const handleLogout = () => {
-    setApiKey('');
     setIsAuthenticated(false);
     setRole(null);
     sessionStorage.removeItem('openwa_api_key');
@@ -81,11 +51,8 @@ function AppContent() {
 
   // Re-validate and get role on mount if already authenticated
   useEffect(() => {
-    const headers: HeadersInit | null = savedToken
-      ? { Authorization: `Bearer ${savedToken}` }
-      : savedKey
-        ? { 'X-API-Key': savedKey }
-        : null;
+    sessionStorage.removeItem('openwa_api_key');
+    const headers: HeadersInit | null = savedToken ? { Authorization: `Bearer ${savedToken}` } : null;
     if (!headers) return;
 
     fetch('/api/auth/validate', {
@@ -103,7 +70,7 @@ function AppContent() {
       .catch(() => {
         // Keep existing role from localStorage if validation fails
       });
-  }, [savedKey, savedToken, setRole]);
+  }, [savedToken, setRole]);
 
   const loadingFallback = (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '100vh' }}>
@@ -124,7 +91,7 @@ function AppContent() {
             <Route index element={<Dashboard />} />
             <Route path="sessions" element={<Sessions />} />
             <Route path="webhooks" element={<Webhooks />} />
-            {role === 'admin' && <Route path="api-keys" element={<ApiKeys />} />}
+            <Route path="api-keys" element={<ApiKeys />} />
             {role === 'admin' && <Route path="users" element={<Users />} />}
             <Route path="logs" element={<Logs />} />
             <Route path="message-tester" element={<MessageTester />} />
