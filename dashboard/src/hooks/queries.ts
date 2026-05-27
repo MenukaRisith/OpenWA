@@ -3,6 +3,7 @@ import {
   sessionApi,
   webhookApi,
   apiKeyApi,
+  userApi,
   auditApi,
   infraApi,
   pluginsApi,
@@ -17,6 +18,7 @@ export const queryKeys = {
   sessionGroups: (sessionId: string) => ['sessions', sessionId, 'groups'] as const,
   webhooks: ['webhooks'] as const,
   apiKeys: ['apiKeys'] as const,
+  users: ['users'] as const,
   logs: (params: { severity?: string; page: number; limit: number }) =>
     ['logs', params] as const,
   infraStatus: ['infra', 'status'] as const,
@@ -179,6 +181,52 @@ export function useRevokeApiKeyMutation() {
 }
 
 // ── Logs Queries ──────────────────────────────────────────────────────
+
+export function useUsersQuery() {
+  return useQuery({
+    queryKey: queryKeys.users,
+    queryFn: userApi.list,
+    staleTime: 30_000,
+  });
+}
+
+export function useCreateUserMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (data: {
+      username: string;
+      displayName: string;
+      password: string;
+      role: 'admin' | 'operator' | 'viewer';
+    }) => userApi.create(data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.users });
+    },
+  });
+}
+
+export function useUpdateUserMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (params: {
+      id: string;
+      data: { displayName?: string; role?: 'admin' | 'operator' | 'viewer'; isActive?: boolean; password?: string };
+    }) => userApi.update(params.id, params.data),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.users });
+    },
+  });
+}
+
+export function useDeleteUserMutation() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => userApi.delete(id),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: queryKeys.users });
+    },
+  });
+}
 
 export function useLogsQuery(params: { severity?: string; page: number; limit: number }) {
   return useQuery({

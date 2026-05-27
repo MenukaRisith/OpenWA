@@ -1,13 +1,21 @@
 import { Controller, Get, Post, Delete, Param, Body, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody, ApiQuery } from '@nestjs/swagger';
 import { SessionService } from '../session/session.service';
+import { CurrentUser } from '../auth/decorators/auth.decorators';
+import { ApiKeyRole } from '../auth/entities/api-key.entity';
+import { User } from '../auth/entities/user.entity';
 
 @ApiTags('channels')
 @Controller('sessions/:sessionId/channels')
 export class ChannelController {
   constructor(private readonly sessionService: SessionService) {}
 
-  private getEngine(sessionId: string) {
+  private ownerScope(user?: User): string | undefined {
+    return user && user.role !== ApiKeyRole.ADMIN ? user.id : undefined;
+  }
+
+  private async getEngine(sessionId: string, user?: User) {
+    await this.sessionService.findOne(sessionId, this.ownerScope(user));
     const engine = this.sessionService.getEngine(sessionId);
     if (!engine) {
       throw new Error('Session is not started');
@@ -23,8 +31,8 @@ export class ChannelController {
     description: 'List of subscribed channels',
   })
   @ApiResponse({ status: 400, description: 'Session not ready' })
-  async findAll(@Param('sessionId') sessionId: string) {
-    const engine = this.getEngine(sessionId);
+  async findAll(@Param('sessionId') sessionId: string, @CurrentUser() user?: User) {
+    const engine = await this.getEngine(sessionId, user);
     return engine.getSubscribedChannels();
   }
 
@@ -37,8 +45,8 @@ export class ChannelController {
     description: 'Channel details',
   })
   @ApiResponse({ status: 404, description: 'Channel not found' })
-  async findOne(@Param('sessionId') sessionId: string, @Param('channelId') channelId: string) {
-    const engine = this.getEngine(sessionId);
+  async findOne(@Param('sessionId') sessionId: string, @Param('channelId') channelId: string, @CurrentUser() user?: User) {
+    const engine = await this.getEngine(sessionId, user);
     const channel = await engine.getChannelById(channelId);
     if (!channel) {
       throw new Error(`Channel ${channelId} not found`);
@@ -59,8 +67,9 @@ export class ChannelController {
     @Param('sessionId') sessionId: string,
     @Param('channelId') channelId: string,
     @Query('limit') limit?: string,
+    @CurrentUser() user?: User,
   ) {
-    const engine = this.getEngine(sessionId);
+    const engine = await this.getEngine(sessionId, user);
     return engine.getChannelMessages(channelId, limit ? parseInt(limit, 10) : undefined);
   }
 
@@ -84,8 +93,8 @@ export class ChannelController {
     status: 201,
     description: 'Successfully subscribed to channel',
   })
-  async subscribe(@Param('sessionId') sessionId: string, @Body() body: { inviteCode: string }) {
-    const engine = this.getEngine(sessionId);
+  async subscribe(@Param('sessionId') sessionId: string, @Body() body: { inviteCode: string }, @CurrentUser() user?: User) {
+    const engine = await this.getEngine(sessionId, user);
     return engine.subscribeToChannel(body.inviteCode);
   }
 
@@ -97,8 +106,12 @@ export class ChannelController {
     status: 200,
     description: 'Successfully unsubscribed from channel',
   })
-  async unsubscribe(@Param('sessionId') sessionId: string, @Param('channelId') channelId: string) {
-    const engine = this.getEngine(sessionId);
+  async unsubscribe(
+    @Param('sessionId') sessionId: string,
+    @Param('channelId') channelId: string,
+    @CurrentUser() user?: User,
+  ) {
+    const engine = await this.getEngine(sessionId, user);
     await engine.unsubscribeFromChannel(channelId);
     return { success: true };
   }

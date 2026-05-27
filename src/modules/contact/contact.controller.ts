@@ -1,11 +1,18 @@
 import { Controller, Get, Post, Delete, Param, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { SessionService } from '../session/session.service';
+import { CurrentUser } from '../auth/decorators/auth.decorators';
+import { ApiKeyRole } from '../auth/entities/api-key.entity';
+import { User } from '../auth/entities/user.entity';
 
 @ApiTags('contacts')
 @Controller('sessions/:sessionId/contacts')
 export class ContactController {
   constructor(private readonly sessionService: SessionService) {}
+
+  private ownerScope(user?: User): string | undefined {
+    return user && user.role !== ApiKeyRole.ADMIN ? user.id : undefined;
+  }
 
   @Get()
   @ApiOperation({ summary: 'Get all contacts for a session' })
@@ -16,7 +23,8 @@ export class ContactController {
   })
   @ApiResponse({ status: 400, description: 'Session not ready' })
   @ApiResponse({ status: 404, description: 'Session not found' })
-  async findAll(@Param('sessionId') sessionId: string) {
+  async findAll(@Param('sessionId') sessionId: string, @CurrentUser() user?: User) {
+    await this.sessionService.findOne(sessionId, this.ownerScope(user));
     const engine = this.sessionService.getEngine(sessionId);
     if (!engine) {
       throw new Error('Session is not started');
@@ -33,7 +41,8 @@ export class ContactController {
     description: 'Contact details',
   })
   @ApiResponse({ status: 404, description: 'Contact not found' })
-  async findOne(@Param('sessionId') sessionId: string, @Param('contactId') contactId: string) {
+  async findOne(@Param('sessionId') sessionId: string, @Param('contactId') contactId: string, @CurrentUser() user?: User) {
+    await this.sessionService.findOne(sessionId, this.ownerScope(user));
     const engine = this.sessionService.getEngine(sessionId);
     if (!engine) {
       throw new Error('Session is not started');
@@ -53,7 +62,8 @@ export class ContactController {
     status: 200,
     description: 'Number existence check result',
   })
-  async checkNumber(@Param('sessionId') sessionId: string, @Param('number') number: string) {
+  async checkNumber(@Param('sessionId') sessionId: string, @Param('number') number: string, @CurrentUser() user?: User) {
+    await this.sessionService.findOne(sessionId, this.ownerScope(user));
     const engine = this.sessionService.getEngine(sessionId);
     if (!engine) {
       throw new Error('Session is not started');
@@ -76,7 +86,12 @@ export class ContactController {
     status: 200,
     description: 'Profile picture URL',
   })
-  async getProfilePicture(@Param('sessionId') sessionId: string, @Param('contactId') contactId: string) {
+  async getProfilePicture(
+    @Param('sessionId') sessionId: string,
+    @Param('contactId') contactId: string,
+    @CurrentUser() user?: User,
+  ) {
+    await this.sessionService.findOne(sessionId, this.ownerScope(user));
     const engine = this.sessionService.getEngine(sessionId);
     if (!engine) {
       throw new Error('Session is not started');
@@ -94,7 +109,8 @@ export class ContactController {
     status: 200,
     description: 'Contact blocked',
   })
-  async blockContact(@Param('sessionId') sessionId: string, @Param('contactId') contactId: string) {
+  async blockContact(@Param('sessionId') sessionId: string, @Param('contactId') contactId: string, @CurrentUser() user?: User) {
+    await this.sessionService.findOne(sessionId, this.ownerScope(user));
     const engine = this.sessionService.getEngine(sessionId);
     if (!engine) {
       throw new Error('Session is not started');
@@ -111,7 +127,12 @@ export class ContactController {
     status: 200,
     description: 'Contact unblocked',
   })
-  async unblockContact(@Param('sessionId') sessionId: string, @Param('contactId') contactId: string) {
+  async unblockContact(
+    @Param('sessionId') sessionId: string,
+    @Param('contactId') contactId: string,
+    @CurrentUser() user?: User,
+  ) {
+    await this.sessionService.findOne(sessionId, this.ownerScope(user));
     const engine = this.sessionService.getEngine(sessionId);
     if (!engine) {
       throw new Error('Session is not started');

@@ -1,9 +1,10 @@
-import { Module, DynamicModule, Type } from '@nestjs/common';
+import { Module, DynamicModule, Type, forwardRef } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Webhook } from './entities/webhook.entity';
 import { WebhookService } from './webhook.service';
 import { WebhookController } from './webhook.controller';
 import { WebhooksListController } from './webhooks-list.controller';
+import { SessionModule } from '../session/session.module';
 
 // Only import QueueModule if explicitly enabled to avoid Redis connection errors
 const queueModules: Array<Type | DynamicModule> = [];
@@ -16,7 +17,7 @@ if (process.env.QUEUE_ENABLED === 'true') {
 }
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Webhook], 'data'), ...queueModules],
+  imports: [TypeOrmModule.forFeature([Webhook], 'data'), forwardRef(() => SessionModule), ...queueModules],
   controllers: [WebhookController, WebhooksListController],
   providers: [WebhookService],
   exports: [WebhookService],

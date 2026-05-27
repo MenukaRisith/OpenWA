@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository, Between, LessThan } from 'typeorm';
+import { Repository, Between, In, LessThan } from 'typeorm';
 import { AuditLog, AuditAction, AuditSeverity } from './entities/audit-log.entity';
 import { ApiKey } from '../auth/entities/api-key.entity';
 
@@ -21,6 +21,7 @@ export interface AuditQueryOptions {
   action?: AuditAction;
   apiKeyId?: string;
   sessionId?: string;
+  sessionIds?: string[];
   severity?: AuditSeverity;
   startDate?: Date;
   endDate?: Date;
@@ -80,6 +81,10 @@ export class AuditService {
     if (options.action) where.action = options.action;
     if (options.apiKeyId) where.apiKeyId = options.apiKeyId;
     if (options.sessionId) where.sessionId = options.sessionId;
+    else if (options.sessionIds) {
+      if (options.sessionIds.length === 0) return { data: [], total: 0 };
+      where.sessionId = In(options.sessionIds);
+    }
     if (options.severity) where.severity = options.severity;
 
     if (options.startDate && options.endDate) {

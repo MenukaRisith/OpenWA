@@ -3,6 +3,7 @@ import { Reflector } from '@nestjs/core';
 import { ApiKeyGuard } from './api-key.guard';
 import { AuthService } from '../auth.service';
 import { ApiKey, ApiKeyRole } from '../entities/api-key.entity';
+import { User } from '../entities/user.entity';
 
 function createMockApiKey(overrides: Partial<ApiKey> = {}): ApiKey {
   return {
@@ -43,6 +44,22 @@ function createMockContext(
   } as unknown as ExecutionContext;
 }
 
+function createMockUser(overrides: Partial<User> = {}): User {
+  return {
+    id: 'user-1',
+    username: 'admin',
+    displayName: 'Admin',
+    passwordHash: 'hash',
+    role: ApiKeyRole.ADMIN,
+    isActive: true,
+    sessionTokenHash: 'token-hash',
+    lastLoginAt: new Date(),
+    createdAt: new Date(),
+    updatedAt: new Date(),
+    ...overrides,
+  };
+}
+
 describe('ApiKeyGuard', () => {
   let guard: ApiKeyGuard;
   let authService: jest.Mocked<Partial<AuthService>>;
@@ -51,6 +68,7 @@ describe('ApiKeyGuard', () => {
   beforeEach(() => {
     authService = {
       validateApiKey: jest.fn(),
+      validateUserToken: jest.fn(),
       hasPermission: jest.fn(),
     };
 
@@ -71,13 +89,13 @@ describe('ApiKeyGuard', () => {
     expect(authService.validateApiKey).not.toHaveBeenCalled();
   });
 
-  it('should reject requests without X-API-Key header', async () => {
+  it('should reject requests without credentials', async () => {
     reflector.getAllAndOverride.mockReturnValueOnce(false); // not public
 
     const context = createMockContext({});
 
     await expect(guard.canActivate(context)).rejects.toThrow(UnauthorizedException);
-    await expect(guard.canActivate(context)).rejects.toThrow('API key is required');
+    await expect(guard.canActivate(context)).rejects.toThrow('API key or user token is required');
   });
 
   it('should accept X-API-Key header', async () => {
@@ -106,6 +124,21 @@ describe('ApiKeyGuard', () => {
 
     expect(result).toBe(true);
     expect(authService.validateApiKey).toHaveBeenCalledWith('my-bearer-key', '127.0.0.1', undefined);
+  });
+
+  it('should accept dashboard user bearer tokens', async () => {
+    reflector.getAllAndOverride.mockReturnValueOnce(false).mockReturnValueOnce(ApiKeyRole.ADMIN);
+
+    const user = createMockUser();
+    (authService.validateUserToken as jest.Mock).mockResolvedValue(user);
+    (authService.hasPermission as jest.Mock).mockReturnValue(true);
+
+    const context = createMockContext({ authorization: 'Bearer owa_u1_dashboard-token' });
+    const result = await guard.canActivate(context);
+
+    expect(result).toBe(true);
+    expect(authService.validateUserToken).toHaveBeenCalledWith('owa_u1_dashboard-token');
+    expect(authService.validateApiKey).not.toHaveBeenCalled();
   });
 
   it('should reject when API key validation fails', async () => {

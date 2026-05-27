@@ -4,8 +4,10 @@ import { MessageService } from './message.service';
 import { BulkMessageService } from './bulk-message.service';
 import { SendTextMessageDto, SendMediaMessageDto, MessageResponseDto } from './dto';
 import { SendBulkMessageDto, BulkMessageResponseDto } from './dto/bulk-message.dto';
-import { RequireRole } from '../auth/decorators/auth.decorators';
+import { CurrentUser, RequireRole } from '../auth/decorators/auth.decorators';
 import { ApiKeyRole } from '../auth/entities/api-key.entity';
+import { User } from '../auth/entities/user.entity';
+import { SessionService } from '../session/session.service';
 
 @ApiTags('messages')
 @Controller('sessions/:sessionId/messages')
@@ -13,7 +15,16 @@ export class MessageController {
   constructor(
     private readonly messageService: MessageService,
     private readonly bulkMessageService: BulkMessageService,
+    private readonly sessionService: SessionService,
   ) {}
+
+  private ownerScope(user?: User): string | undefined {
+    return user && user.role !== ApiKeyRole.ADMIN ? user.id : undefined;
+  }
+
+  private async assertSessionAccess(sessionId: string, user?: User): Promise<void> {
+    await this.sessionService.findOne(sessionId, this.ownerScope(user));
+  }
 
   @Get()
   @ApiOperation({ summary: 'Get message history for a session' })
@@ -30,7 +41,9 @@ export class MessageController {
     @Query('chatId') chatId?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
+    @CurrentUser() user?: User,
   ) {
+    await this.assertSessionAccess(sessionId, user);
     return this.messageService.getMessages(sessionId, {
       chatId,
       limit: limit ? parseInt(limit, 10) : undefined,
@@ -52,7 +65,12 @@ export class MessageController {
     description: 'Session not active or invalid request',
   })
   @ApiResponse({ status: 404, description: 'Session not found' })
-  async sendText(@Param('sessionId') sessionId: string, @Body() dto: SendTextMessageDto): Promise<MessageResponseDto> {
+  async sendText(
+    @Param('sessionId') sessionId: string,
+    @Body() dto: SendTextMessageDto,
+    @CurrentUser() user?: User,
+  ): Promise<MessageResponseDto> {
+    await this.assertSessionAccess(sessionId, user);
     return this.messageService.sendText(sessionId, dto);
   }
 
@@ -72,7 +90,9 @@ export class MessageController {
   async sendImage(
     @Param('sessionId') sessionId: string,
     @Body() dto: SendMediaMessageDto,
+    @CurrentUser() user?: User,
   ): Promise<MessageResponseDto> {
+    await this.assertSessionAccess(sessionId, user);
     return this.messageService.sendImage(sessionId, dto);
   }
 
@@ -92,7 +112,9 @@ export class MessageController {
   async sendVideo(
     @Param('sessionId') sessionId: string,
     @Body() dto: SendMediaMessageDto,
+    @CurrentUser() user?: User,
   ): Promise<MessageResponseDto> {
+    await this.assertSessionAccess(sessionId, user);
     return this.messageService.sendVideo(sessionId, dto);
   }
 
@@ -112,7 +134,9 @@ export class MessageController {
   async sendAudio(
     @Param('sessionId') sessionId: string,
     @Body() dto: SendMediaMessageDto,
+    @CurrentUser() user?: User,
   ): Promise<MessageResponseDto> {
+    await this.assertSessionAccess(sessionId, user);
     return this.messageService.sendAudio(sessionId, dto);
   }
 
@@ -132,7 +156,9 @@ export class MessageController {
   async sendDocument(
     @Param('sessionId') sessionId: string,
     @Body() dto: SendMediaMessageDto,
+    @CurrentUser() user?: User,
   ): Promise<MessageResponseDto> {
+    await this.assertSessionAccess(sessionId, user);
     return this.messageService.sendDocument(sessionId, dto);
   }
 
@@ -150,7 +176,9 @@ export class MessageController {
   async sendLocation(
     @Param('sessionId') sessionId: string,
     @Body() dto: { chatId: string; latitude: number; longitude: number; description?: string; address?: string },
+    @CurrentUser() user?: User,
   ): Promise<MessageResponseDto> {
+    await this.assertSessionAccess(sessionId, user);
     return this.messageService.sendLocation(sessionId, dto);
   }
 
@@ -166,7 +194,9 @@ export class MessageController {
   async sendContact(
     @Param('sessionId') sessionId: string,
     @Body() dto: { chatId: string; contactName: string; contactNumber: string },
+    @CurrentUser() user?: User,
   ): Promise<MessageResponseDto> {
+    await this.assertSessionAccess(sessionId, user);
     return this.messageService.sendContact(sessionId, dto);
   }
 
@@ -182,7 +212,9 @@ export class MessageController {
   async sendSticker(
     @Param('sessionId') sessionId: string,
     @Body() dto: SendMediaMessageDto,
+    @CurrentUser() user?: User,
   ): Promise<MessageResponseDto> {
+    await this.assertSessionAccess(sessionId, user);
     return this.messageService.sendSticker(sessionId, dto);
   }
 
@@ -198,7 +230,9 @@ export class MessageController {
   async reply(
     @Param('sessionId') sessionId: string,
     @Body() dto: { chatId: string; quotedMessageId: string; text: string },
+    @CurrentUser() user?: User,
   ): Promise<MessageResponseDto> {
+    await this.assertSessionAccess(sessionId, user);
     return this.messageService.reply(sessionId, dto);
   }
 
@@ -214,7 +248,9 @@ export class MessageController {
   async forward(
     @Param('sessionId') sessionId: string,
     @Body() dto: { fromChatId: string; toChatId: string; messageId: string },
+    @CurrentUser() user?: User,
   ): Promise<MessageResponseDto> {
+    await this.assertSessionAccess(sessionId, user);
     return this.messageService.forward(sessionId, dto);
   }
 
@@ -235,7 +271,9 @@ export class MessageController {
   async react(
     @Param('sessionId') sessionId: string,
     @Body() dto: { chatId: string; messageId: string; emoji: string },
+    @CurrentUser() user?: User,
   ): Promise<{ success: boolean }> {
+    await this.assertSessionAccess(sessionId, user);
     await this.messageService.reactToMessage(sessionId, dto);
     return { success: true };
   }
@@ -253,7 +291,9 @@ export class MessageController {
     @Param('sessionId') sessionId: string,
     @Param('chatId') chatId: string,
     @Param('messageId') messageId: string,
+    @CurrentUser() user?: User,
   ) {
+    await this.assertSessionAccess(sessionId, user);
     return this.messageService.getMessageReactions(sessionId, chatId, messageId);
   }
 
@@ -274,7 +314,9 @@ export class MessageController {
   async deleteMessage(
     @Param('sessionId') sessionId: string,
     @Body() dto: { chatId: string; messageId: string; forEveryone?: boolean },
+    @CurrentUser() user?: User,
   ): Promise<{ success: boolean }> {
+    await this.assertSessionAccess(sessionId, user);
     await this.messageService.deleteMessage(sessionId, dto);
     return { success: true };
   }
@@ -298,7 +340,9 @@ export class MessageController {
   async sendBulk(
     @Param('sessionId') sessionId: string,
     @Body() dto: SendBulkMessageDto,
+    @CurrentUser() user?: User,
   ): Promise<BulkMessageResponseDto> {
+    await this.assertSessionAccess(sessionId, user);
     const batch = await this.bulkMessageService.createBatch(sessionId, dto);
     const estimatedTime = new Date(Date.now() + batch.messages.length * (batch.options?.delayBetweenMessages || 3000));
 
@@ -323,7 +367,12 @@ export class MessageController {
     status: 404,
     description: 'Batch not found',
   })
-  async getBatchStatus(@Param('sessionId') sessionId: string, @Param('batchId') batchId: string) {
+  async getBatchStatus(
+    @Param('sessionId') sessionId: string,
+    @Param('batchId') batchId: string,
+    @CurrentUser() user?: User,
+  ) {
+    await this.assertSessionAccess(sessionId, user);
     const batch = await this.bulkMessageService.getBatchStatus(sessionId, batchId);
     return {
       batchId: batch.batchId,
@@ -353,7 +402,12 @@ export class MessageController {
     status: 404,
     description: 'Batch not found',
   })
-  async cancelBatch(@Param('sessionId') sessionId: string, @Param('batchId') batchId: string) {
+  async cancelBatch(
+    @Param('sessionId') sessionId: string,
+    @Param('batchId') batchId: string,
+    @CurrentUser() user?: User,
+  ) {
+    await this.assertSessionAccess(sessionId, user);
     const batch = await this.bulkMessageService.cancelBatch(sessionId, batchId);
     return {
       batchId: batch.batchId,

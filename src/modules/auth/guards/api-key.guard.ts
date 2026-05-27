@@ -21,43 +21,46 @@ export class ApiKeyGuard implements CanActivate {
     }
 
     const request = context.switchToHttp().getRequest<Request>();
-    const apiKeyHeader = this.extractApiKey(request);
+    const credentials = this.extractCredentials(request);
 
-    if (!apiKeyHeader) {
-      throw new UnauthorizedException('API key is required');
+    if (!credentials) {
+      throw new UnauthorizedException('API key or user token is required');
     }
 
-    // Get session ID from route params if present
     const sessionId = (request.params['sessionId'] || request.params['id']) as string | undefined;
     const clientIp = this.getClientIp(request);
 
-    // Validate API key
-    const apiKey = await this.authService.validateApiKey(apiKeyHeader, clientIp, sessionId);
+    const principal =
+      credentials.type === 'user'
+        ? await this.authService.validateUserToken(credentials.value)
+        : await this.authService.validateApiKey(credentials.value, clientIp, sessionId);
 
-    // Check role permission
     const requiredRole = this.reflector.getAllAndOverride<ApiKeyRole>(REQUIRED_ROLE_KEY, [
       context.getHandler(),
       context.getClass(),
     ]);
 
-    if (requiredRole && !this.authService.hasPermission(apiKey, requiredRole)) {
+    if (requiredRole && !this.authService.hasPermission(principal, requiredRole)) {
       throw new UnauthorizedException(`Insufficient permissions. Required: ${requiredRole}`);
     }
 
-    // Attach API key to request for use in controllers
-    (request as Request & { apiKey: typeof apiKey }).apiKey = apiKey;
+    if (credentials.type === 'user') {
+      (request as Request & { user: typeof principal }).user = principal;
+    } else {
+      (request as Request & { apiKey: typeof principal }).apiKey = principal;
+    }
 
     return true;
   }
 
-  private extractApiKey(request: Request): string | undefined {
-    // Support both X-API-Key header and Authorization Bearer
+  private extractCredentials(request: Request): { type: 'apiKey' | 'user'; value: string } | undefined {
     const xApiKey = request.headers['x-api-key'] as string;
-    if (xApiKey) return xApiKey;
+    if (xApiKey) return { type: 'apiKey', value: xApiKey };
 
     const authHeader = request.headers['authorization'];
     if (authHeader?.startsWith('Bearer ')) {
-      return authHeader.substring(7);
+      const token = authHeader.substring(7);
+      return { type: token.startsWith('owa_u1_') ? 'user' : 'apiKey', value: token };
     }
 
     return undefined;

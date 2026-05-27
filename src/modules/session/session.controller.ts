@@ -5,8 +5,9 @@ import { CreateSessionDto, SessionResponseDto, QRCodeResponseDto } from './dto';
 import { Session } from './entities/session.entity';
 import { AuditService } from '../audit/audit.service';
 import { AuditAction } from '../audit/entities/audit-log.entity';
-import { RequireRole } from '../auth/decorators/auth.decorators';
+import { CurrentUser, RequireRole } from '../auth/decorators/auth.decorators';
 import { ApiKeyRole } from '../auth/entities/api-key.entity';
+import { User } from '../auth/entities/user.entity';
 
 @ApiTags('sessions')
 @Controller('sessions')
@@ -31,6 +32,10 @@ export class SessionController {
     };
   }
 
+  private ownerScope(user?: User): string | undefined {
+    return user && user.role !== ApiKeyRole.ADMIN ? user.id : undefined;
+  }
+
   @Post()
   @RequireRole(ApiKeyRole.OPERATOR)
   @ApiOperation({ summary: 'Create a new WhatsApp session' })
@@ -40,8 +45,8 @@ export class SessionController {
     type: SessionResponseDto,
   })
   @ApiResponse({ status: 409, description: 'Session name already exists' })
-  async create(@Body() dto: CreateSessionDto): Promise<Session> {
-    const session = await this.sessionService.create(dto);
+  async create(@Body() dto: CreateSessionDto, @CurrentUser() user?: User): Promise<Session> {
+    const session = await this.sessionService.create(dto, this.ownerScope(user));
     await this.auditService.logInfo(AuditAction.SESSION_CREATED, {
       sessionId: session.id,
       sessionName: session.name,
@@ -56,8 +61,8 @@ export class SessionController {
     description: 'List of sessions',
     type: [SessionResponseDto],
   })
-  async findAll(): Promise<SessionResponseDto[]> {
-    const sessions = await this.sessionService.findAll();
+  async findAll(@CurrentUser() user?: User): Promise<SessionResponseDto[]> {
+    const sessions = await this.sessionService.findAll(this.ownerScope(user));
     return sessions.map(s => this.transformSession(s));
   }
 
@@ -70,8 +75,8 @@ export class SessionController {
     type: SessionResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Session not found' })
-  async findOne(@Param('id') id: string): Promise<SessionResponseDto> {
-    const session = await this.sessionService.findOne(id);
+  async findOne(@Param('id') id: string, @CurrentUser() user?: User): Promise<SessionResponseDto> {
+    const session = await this.sessionService.findOne(id, this.ownerScope(user));
     return this.transformSession(session);
   }
 
@@ -82,9 +87,10 @@ export class SessionController {
   @ApiParam({ name: 'id', description: 'Session ID' })
   @ApiResponse({ status: 204, description: 'Session deleted' })
   @ApiResponse({ status: 404, description: 'Session not found' })
-  async delete(@Param('id') id: string): Promise<void> {
-    const session = await this.sessionService.findOne(id);
-    await this.sessionService.delete(id);
+  async delete(@Param('id') id: string, @CurrentUser() user?: User): Promise<void> {
+    const ownerUserId = this.ownerScope(user);
+    const session = await this.sessionService.findOne(id, ownerUserId);
+    await this.sessionService.delete(id, ownerUserId);
     await this.auditService.logInfo(AuditAction.SESSION_DELETED, {
       sessionId: id,
       sessionName: session.name,
@@ -104,8 +110,8 @@ export class SessionController {
   })
   @ApiResponse({ status: 400, description: 'Session already started' })
   @ApiResponse({ status: 404, description: 'Session not found' })
-  async start(@Param('id') id: string): Promise<SessionResponseDto> {
-    const session = await this.sessionService.start(id);
+  async start(@Param('id') id: string, @CurrentUser() user?: User): Promise<SessionResponseDto> {
+    const session = await this.sessionService.start(id, this.ownerScope(user));
     await this.auditService.logInfo(AuditAction.SESSION_STARTED, {
       sessionId: session.id,
       sessionName: session.name,
@@ -123,8 +129,8 @@ export class SessionController {
     type: SessionResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Session not found' })
-  async stop(@Param('id') id: string): Promise<SessionResponseDto> {
-    const session = await this.sessionService.stop(id);
+  async stop(@Param('id') id: string, @CurrentUser() user?: User): Promise<SessionResponseDto> {
+    const session = await this.sessionService.stop(id, this.ownerScope(user));
     await this.auditService.logInfo(AuditAction.SESSION_STOPPED, {
       sessionId: session.id,
       sessionName: session.name,
@@ -145,8 +151,8 @@ export class SessionController {
     description: 'QR code not ready or session already authenticated',
   })
   @ApiResponse({ status: 404, description: 'Session not found' })
-  async getQRCode(@Param('id') id: string): Promise<QRCodeResponseDto> {
-    const qrCode = await this.sessionService.getQRCode(id);
+  async getQRCode(@Param('id') id: string, @CurrentUser() user?: User): Promise<QRCodeResponseDto> {
+    const qrCode = await this.sessionService.getQRCode(id, this.ownerScope(user));
     await this.auditService.logInfo(AuditAction.SESSION_QR_GENERATED, {
       sessionId: id,
     });
@@ -162,8 +168,8 @@ export class SessionController {
   })
   @ApiResponse({ status: 400, description: 'Session not ready' })
   @ApiResponse({ status: 404, description: 'Session not found' })
-  async getGroups(@Param('id') id: string): Promise<{ id: string; name: string }[]> {
-    return this.sessionService.getGroups(id);
+  async getGroups(@Param('id') id: string, @CurrentUser() user?: User): Promise<{ id: string; name: string }[]> {
+    return this.sessionService.getGroups(id, this.ownerScope(user));
   }
 
   @Get('stats/overview')
@@ -174,7 +180,7 @@ export class SessionController {
     status: 200,
     description: 'Session statistics including counts and memory usage',
   })
-  async getStats(): Promise<{
+  async getStats(@CurrentUser() user?: User): Promise<{
     total: number;
     active: number;
     ready: number;
@@ -182,6 +188,6 @@ export class SessionController {
     byStatus: Record<string, number>;
     memoryUsage: { heapUsed: number; heapTotal: number; rss: number };
   }> {
-    return this.sessionService.getStats();
+    return this.sessionService.getStats(this.ownerScope(user));
   }
 }

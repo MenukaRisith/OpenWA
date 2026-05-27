@@ -42,7 +42,7 @@ export interface ApiKey {
   id: string;
   name: string;
   keyPrefix: string;
-  role: 'admin' | 'user' | 'readonly';
+  role: 'admin' | 'operator' | 'viewer';
   allowedIps?: string[];
   allowedSessions?: string[];
   isActive: boolean;
@@ -51,6 +51,22 @@ export interface ApiKey {
   usageCount: number;
   createdAt: string;
   apiKey?: string; // Only returned on creation
+}
+
+export interface User {
+  id: string;
+  username: string;
+  displayName: string;
+  role: 'admin' | 'operator' | 'viewer';
+  isActive: boolean;
+  lastLoginAt?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  user: User;
 }
 
 export interface AuditLog {
@@ -148,12 +164,13 @@ export interface Settings {
 async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
 
-  // Get API key from sessionStorage for authentication
+  // Dashboard users use bearer tokens. API key login is kept for backwards compatibility.
+  const authToken = sessionStorage.getItem('openwa_auth_token');
   const apiKey = sessionStorage.getItem('openwa_api_key');
 
   const headers: HeadersInit = {
     'Content-Type': 'application/json',
-    ...(apiKey ? { 'X-API-Key': apiKey } : {}),
+    ...(authToken ? { Authorization: `Bearer ${authToken}` } : apiKey ? { 'X-API-Key': apiKey } : {}),
     ...options.headers,
   };
 
@@ -170,6 +187,33 @@ async function request<T>(endpoint: string, options: RequestInit = {}): Promise<
 
   return response.json();
 }
+
+// =============================================================================
+// Auth & User API
+// =============================================================================
+
+export const authApi = {
+  login: (data: { username: string; password: string }) =>
+    request<LoginResponse>('/auth/login', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+};
+
+export const userApi = {
+  list: () => request<User[]>('/auth/users'),
+  create: (data: { username: string; displayName: string; password: string; role: User['role'] }) =>
+    request<User>('/auth/users', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+  update: (id: string, data: Partial<Pick<User, 'displayName' | 'role' | 'isActive'>> & { password?: string }) =>
+    request<User>(`/auth/users/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+  delete: (id: string) => request<void>(`/auth/users/${id}`, { method: 'DELETE' }),
+};
 
 // =============================================================================
 // Session API

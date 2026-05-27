@@ -5,6 +5,7 @@ import { UnauthorizedException, NotFoundException } from '@nestjs/common';
 import { createHash } from 'crypto';
 import { AuthService } from './auth.service';
 import { ApiKey, ApiKeyRole } from './entities/api-key.entity';
+import { User } from './entities/user.entity';
 
 // Helpers
 const hashKey = (key: string) => createHash('sha256').update(key).digest('hex');
@@ -31,9 +32,18 @@ function createMockApiKey(overrides: Partial<ApiKey> = {}): ApiKey {
 describe('AuthService', () => {
   let service: AuthService;
   let repository: jest.Mocked<Partial<Repository<ApiKey>>>;
+  let userRepository: jest.Mocked<Partial<Repository<User>>>;
 
   beforeEach(async () => {
     repository = {
+      count: jest.fn(),
+      find: jest.fn(),
+      findOne: jest.fn(),
+      create: jest.fn(),
+      save: jest.fn(),
+      remove: jest.fn(),
+    };
+    userRepository = {
       count: jest.fn(),
       find: jest.fn(),
       findOne: jest.fn(),
@@ -48,6 +58,10 @@ describe('AuthService', () => {
         {
           provide: getRepositoryToken(ApiKey, 'main'),
           useValue: repository,
+        },
+        {
+          provide: getRepositoryToken(User, 'main'),
+          useValue: userRepository,
         },
       ],
     }).compile();

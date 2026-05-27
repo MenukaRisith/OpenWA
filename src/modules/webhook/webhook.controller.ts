@@ -3,13 +3,22 @@ import { ApiTags, ApiOperation, ApiResponse, ApiParam } from '@nestjs/swagger';
 import { WebhookService } from './webhook.service';
 import { CreateWebhookDto, UpdateWebhookDto, WebhookResponseDto } from './dto';
 import { Webhook } from './entities/webhook.entity';
-import { RequireRole } from '../auth/decorators/auth.decorators';
+import { CurrentUser, RequireRole } from '../auth/decorators/auth.decorators';
 import { ApiKeyRole } from '../auth/entities/api-key.entity';
+import { User } from '../auth/entities/user.entity';
+import { SessionService } from '../session/session.service';
 
 @ApiTags('webhooks')
 @Controller('sessions/:sessionId/webhooks')
 export class WebhookController {
-  constructor(private readonly webhookService: WebhookService) {}
+  constructor(
+    private readonly webhookService: WebhookService,
+    private readonly sessionService: SessionService,
+  ) {}
+
+  private ownerScope(user?: User): string | undefined {
+    return user && user.role !== ApiKeyRole.ADMIN ? user.id : undefined;
+  }
 
   @Post()
   @RequireRole(ApiKeyRole.OPERATOR)
@@ -20,7 +29,12 @@ export class WebhookController {
     description: 'Webhook created',
     type: WebhookResponseDto,
   })
-  async create(@Param('sessionId') sessionId: string, @Body() dto: CreateWebhookDto): Promise<Webhook> {
+  async create(
+    @Param('sessionId') sessionId: string,
+    @Body() dto: CreateWebhookDto,
+    @CurrentUser() user?: User,
+  ): Promise<Webhook> {
+    await this.sessionService.findOne(sessionId, this.ownerScope(user));
     return this.webhookService.create(sessionId, dto);
   }
 
@@ -32,7 +46,8 @@ export class WebhookController {
     description: 'List of webhooks',
     type: [WebhookResponseDto],
   })
-  async findBySession(@Param('sessionId') sessionId: string): Promise<Webhook[]> {
+  async findBySession(@Param('sessionId') sessionId: string, @CurrentUser() user?: User): Promise<Webhook[]> {
+    await this.sessionService.findOne(sessionId, this.ownerScope(user));
     return this.webhookService.findBySession(sessionId);
   }
 
@@ -46,8 +61,9 @@ export class WebhookController {
     type: WebhookResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Webhook not found' })
-  async findOne(@Param('id') id: string): Promise<Webhook> {
-    return this.webhookService.findOne(id);
+  async findOne(@Param('sessionId') sessionId: string, @Param('id') id: string, @CurrentUser() user?: User): Promise<Webhook> {
+    await this.sessionService.findOne(sessionId, this.ownerScope(user));
+    return this.webhookService.findOne(id, sessionId);
   }
 
   @Put(':id')
@@ -61,8 +77,14 @@ export class WebhookController {
     type: WebhookResponseDto,
   })
   @ApiResponse({ status: 404, description: 'Webhook not found' })
-  async update(@Param('id') id: string, @Body() dto: UpdateWebhookDto): Promise<Webhook> {
-    return this.webhookService.update(id, dto);
+  async update(
+    @Param('sessionId') sessionId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateWebhookDto,
+    @CurrentUser() user?: User,
+  ): Promise<Webhook> {
+    await this.sessionService.findOne(sessionId, this.ownerScope(user));
+    return this.webhookService.update(id, dto, sessionId);
   }
 
   @Post(':id/test')
@@ -75,7 +97,9 @@ export class WebhookController {
   async test(
     @Param('sessionId') sessionId: string,
     @Param('id') id: string,
+    @CurrentUser() user?: User,
   ): Promise<{ success: boolean; statusCode?: number; error?: string }> {
+    await this.sessionService.findOne(sessionId, this.ownerScope(user));
     return this.webhookService.test(sessionId, id);
   }
 
@@ -87,7 +111,8 @@ export class WebhookController {
   @ApiParam({ name: 'id', description: 'Webhook ID' })
   @ApiResponse({ status: 204, description: 'Webhook deleted' })
   @ApiResponse({ status: 404, description: 'Webhook not found' })
-  async delete(@Param('id') id: string): Promise<void> {
-    return this.webhookService.delete(id);
+  async delete(@Param('sessionId') sessionId: string, @Param('id') id: string, @CurrentUser() user?: User): Promise<void> {
+    await this.sessionService.findOne(sessionId, this.ownerScope(user));
+    return this.webhookService.delete(id, sessionId);
   }
 }

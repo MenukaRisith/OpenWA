@@ -1,0 +1,91 @@
+.users-page.loading-panel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 400px;
+}
+
+.user-name-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.user-name-cell strong {
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.user-name-cell small {
+  color: var(--text-muted);
+  font-size: 0.75rem;
+}
+
+.user-error {
+  margin-bottom: 1rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #fecaca;
+  border-radius: var(--radius);
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.users-page .status-badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.users-page .status-badge.active {
+  background: var(--accent-soft);
+  color: var(--primary);
+}
+
+.users-page .status-badge.inactive {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
+.user-form {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.user-form label {
+  color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.user-form input,
+.user-form select {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-white);
+  color: var(--text-primary);
+  font-size: 0.9375rem;
+}
+
+.user-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.user-checkbox input {
+  width: 16px;
+  height: 16px;
+}
+
+.users-table .actions-cell {
+  justify-content: flex-start;
+}

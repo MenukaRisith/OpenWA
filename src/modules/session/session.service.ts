@@ -90,7 +90,7 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     this.reconnectStates.clear();
   }
 
-  async create(dto: CreateSessionDto): Promise<Session> {
+  async create(dto: CreateSessionDto, ownerUserId?: string): Promise<Session> {
     // Check if session with same name exists
     const existing = await this.sessionRepository.findOne({
       where: { name: dto.name },
@@ -102,6 +102,7 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
 
     const session = this.sessionRepository.create({
       name: dto.name,
+      ownerUserId: ownerUserId || null,
       config: dto.config || {},
       proxyUrl: dto.proxyUrl || null,
       proxyType: dto.proxyType || null,
@@ -125,14 +126,17 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     return saved;
   }
 
-  async findAll(): Promise<Session[]> {
+  async findAll(ownerUserId?: string): Promise<Session[]> {
     return this.sessionRepository.find({
+      where: ownerUserId ? { ownerUserId } : {},
       order: { createdAt: 'DESC' },
     });
   }
 
-  async findOne(id: string): Promise<Session> {
-    const session = await this.sessionRepository.findOne({ where: { id } });
+  async findOne(id: string, ownerUserId?: string): Promise<Session> {
+    const session = await this.sessionRepository.findOne({
+      where: ownerUserId ? { id, ownerUserId } : { id },
+    });
     if (!session) {
       throw new NotFoundException(`Session with id '${id}' not found`);
     }
@@ -147,8 +151,8 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     return session;
   }
 
-  async delete(id: string): Promise<void> {
-    const session = await this.findOne(id);
+  async delete(id: string, ownerUserId?: string): Promise<void> {
+    const session = await this.findOne(id, ownerUserId);
 
     // Cancel any reconnection attempts
     this.cancelReconnect(id);
@@ -184,8 +188,8 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     });
   }
 
-  async start(id: string): Promise<Session> {
-    const session = await this.findOne(id);
+  async start(id: string, ownerUserId?: string): Promise<Session> {
+    const session = await this.findOne(id, ownerUserId);
 
     if (this.engines.has(id)) {
       throw new BadRequestException('Session is already started');
@@ -416,8 +420,8 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     this.reconnectStates.delete(id);
   }
 
-  async stop(id: string): Promise<Session> {
-    const session = await this.findOne(id);
+  async stop(id: string, ownerUserId?: string): Promise<Session> {
+    const session = await this.findOne(id, ownerUserId);
 
     // Cancel any reconnection attempts
     this.cancelReconnect(id);
@@ -437,8 +441,8 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     return this.findOne(id);
   }
 
-  async getQRCode(id: string): Promise<{ qrCode: string; status: SessionStatus }> {
-    const session = await this.findOne(id);
+  async getQRCode(id: string, ownerUserId?: string): Promise<{ qrCode: string; status: SessionStatus }> {
+    const session = await this.findOne(id, ownerUserId);
     const engine = this.engines.get(id);
 
     if (!engine) {
@@ -464,8 +468,8 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     return this.engines.get(id);
   }
 
-  async getGroups(id: string): Promise<{ id: string; name: string }[]> {
-    await this.findOne(id); // Verify session exists
+  async getGroups(id: string, ownerUserId?: string): Promise<{ id: string; name: string }[]> {
+    await this.findOne(id, ownerUserId); // Verify session exists and is accessible
     const engine = this.engines.get(id);
 
     if (!engine) {
@@ -493,7 +497,7 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
   /**
    * Get overall session statistics for multi-session monitoring
    */
-  async getStats(): Promise<{
+  async getStats(ownerUserId?: string): Promise<{
     total: number;
     active: number;
     ready: number;
@@ -501,7 +505,7 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     byStatus: Record<string, number>;
     memoryUsage: { heapUsed: number; heapTotal: number; rss: number };
   }> {
-    const sessions = await this.findAll();
+    const sessions = await this.findAll(ownerUserId);
     const byStatus: Record<string, number> = {};
 
     for (const session of sessions) {
@@ -512,7 +516,7 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
 
     return {
       total: sessions.length,
-      active: this.engines.size,
+      active: sessions.filter(session => this.engines.has(session.id)).length,
       ready: byStatus[SessionStatus.READY] || 0,
       disconnected: byStatus[SessionStatus.DISCONNECTED] || 0,
       byStatus,

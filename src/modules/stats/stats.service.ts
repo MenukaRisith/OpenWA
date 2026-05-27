@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { Session, SessionStatus } from '../session/entities/session.entity';
 import { Message, MessageStatus } from '../message/entities/message.entity';
 import { CacheService } from '../../common/cache';
@@ -49,9 +49,16 @@ export class StatsService {
     private readonly cacheService: CacheService,
   ) {}
 
-  async getOverview(): Promise<OverviewStats> {
+  async getOverview(sessionIds?: string[]): Promise<OverviewStats> {
+    if (sessionIds && sessionIds.length === 0) {
+      return {
+        sessions: { active: 0, total: 0, byStatus: {} },
+        messages: { sent: 0, received: 0, failed: 0, today: { sent: 0, received: 0 } },
+      };
+    }
+
     // Get session stats
-    const sessions = await this.sessionRepo.find();
+    const sessions = await this.sessionRepo.find({ where: sessionIds ? { id: In(sessionIds) } : {} });
     const byStatus: Record<string, number> = {};
     let active = 0;
 
@@ -64,20 +71,30 @@ export class StatsService {
     const todayStart = new Date();
     todayStart.setHours(0, 0, 0, 0);
 
-    const messageStats = await this.messageRepo
+    const messageStatsQuery = this.messageRepo
       .createQueryBuilder('m')
       .select('m.direction', 'direction')
       .addSelect('COUNT(*)', 'count')
-      .groupBy('m.direction')
-      .getRawMany<{ direction: string; count: string }>();
+      .groupBy('m.direction');
 
-    const todayStats = await this.messageRepo
+    if (sessionIds) {
+      messageStatsQuery.where('m.sessionId IN (:...sessionIds)', { sessionIds });
+    }
+
+    const messageStats = await messageStatsQuery.getRawMany<{ direction: string; count: string }>();
+
+    const todayStatsQuery = this.messageRepo
       .createQueryBuilder('m')
       .select('m.direction', 'direction')
       .addSelect('COUNT(*)', 'count')
       .where('m.createdAt >= :todayStart', { todayStart })
-      .groupBy('m.direction')
-      .getRawMany<{ direction: string; count: string }>();
+      .groupBy('m.direction');
+
+    if (sessionIds) {
+      todayStatsQuery.andWhere('m.sessionId IN (:...sessionIds)', { sessionIds });
+    }
+
+    const todayStats = await todayStatsQuery.getRawMany<{ direction: string; count: string }>();
 
     const sent = parseInt(messageStats.find(m => m.direction === 'outgoing')?.count || '0');
     const received = parseInt(messageStats.find(m => m.direction === 'incoming')?.count || '0');
@@ -86,7 +103,7 @@ export class StatsService {
 
     // Count failed messages
     const failed = await this.messageRepo.count({
-      where: { status: MessageStatus.FAILED },
+      where: sessionIds ? { status: MessageStatus.FAILED, sessionId: In(sessionIds) } : { status: MessageStatus.FAILED },
     });
 
     // Cache session stats
@@ -111,21 +128,30 @@ export class StatsService {
     };
   }
 
-  async getMessageStats(period: '24h' | '7d' | '30d'): Promise<MessageStats> {
+  async getMessageStats(period: '24h' | '7d' | '30d', sessionIds?: string[]): Promise<MessageStats> {
+    if (sessionIds && sessionIds.length === 0) {
+      return { timeSeries: [], byType: {}, bySession: [], topChats: [] };
+    }
+
     const since = this.getPeriodStart(period);
     const interval = period === '24h' ? 'hour' : 'day';
 
     // Time series - using raw query for SQLite compatibility
-    const timeSeries = await this.getTimeSeries(since, interval);
+    const timeSeries = await this.getTimeSeries(since, interval, sessionIds);
 
     // By type
-    const byTypeRaw = await this.messageRepo
+    const byTypeQuery = this.messageRepo
       .createQueryBuilder('m')
       .select('m.type', 'type')
       .addSelect('COUNT(*)', 'count')
       .where('m.createdAt >= :since', { since })
-      .groupBy('m.type')
-      .getRawMany<{ type: string; count: string }>();
+      .groupBy('m.type');
+
+    if (sessionIds) {
+      byTypeQuery.andWhere('m.sessionId IN (:...sessionIds)', { sessionIds });
+    }
+
+    const byTypeRaw = await byTypeQuery.getRawMany<{ type: string; count: string }>();
 
     const byType: Record<string, number> = {};
     for (const row of byTypeRaw) {
@@ -133,15 +159,20 @@ export class StatsService {
     }
 
     // By session
-    const bySessionRaw = await this.messageRepo
+    const bySessionQuery = this.messageRepo
       .createQueryBuilder('m')
       .select('m.sessionId', 'sessionId')
       .addSelect('m.direction', 'direction')
       .addSelect('COUNT(*)', 'count')
       .where('m.createdAt >= :since', { since })
       .groupBy('m.sessionId')
-      .addGroupBy('m.direction')
-      .getRawMany<{ sessionId: string; direction: string; count: string }>();
+      .addGroupBy('m.direction');
+
+    if (sessionIds) {
+      bySessionQuery.andWhere('m.sessionId IN (:...sessionIds)', { sessionIds });
+    }
+
+    const bySessionRaw = await bySessionQuery.getRawMany<{ sessionId: string; direction: string; count: string }>();
 
     const sessionMap = new Map<string, { sent: number; received: number }>();
     for (const row of bySessionRaw) {
@@ -153,7 +184,7 @@ export class StatsService {
       else entry.received = parseInt(row.count);
     }
 
-    const sessions = await this.sessionRepo.find();
+    const sessions = await this.sessionRepo.find({ where: sessionIds ? { id: In(sessionIds) } : {} });
     const sessionNames = new Map(sessions.map(s => [s.id, s.name]));
 
     const bySession = Array.from(sessionMap.entries()).map(([sessionId, stats]) => ({
@@ -163,15 +194,20 @@ export class StatsService {
     }));
 
     // Top chats
-    const topChats = await this.messageRepo
+    const topChatsQuery = this.messageRepo
       .createQueryBuilder('m')
       .select('m.chatId', 'chatId')
       .addSelect('COUNT(*)', 'messageCount')
       .where('m.createdAt >= :since', { since })
       .groupBy('m.chatId')
       .orderBy('messageCount', 'DESC')
-      .limit(10)
-      .getRawMany<{ chatId: string; messageCount: string }>();
+      .limit(10);
+
+    if (sessionIds) {
+      topChatsQuery.andWhere('m.sessionId IN (:...sessionIds)', { sessionIds });
+    }
+
+    const topChats = await topChatsQuery.getRawMany<{ chatId: string; messageCount: string }>();
 
     return {
       timeSeries,
@@ -184,8 +220,8 @@ export class StatsService {
     };
   }
 
-  async getSessionStats(sessionId: string): Promise<SessionStats> {
-    const session = await this.sessionRepo.findOne({ where: { id: sessionId } });
+  async getSessionStats(sessionId: string, ownerUserId?: string): Promise<SessionStats> {
+    const session = await this.sessionRepo.findOne({ where: ownerUserId ? { id: sessionId, ownerUserId } : { id: sessionId } });
     if (!session) {
       throw new NotFoundException('Session not found');
     }
@@ -255,19 +291,24 @@ export class StatsService {
     }
   }
 
-  private async getTimeSeries(since: Date, interval: 'hour' | 'day'): Promise<TimeSeriesPoint[]> {
+  private async getTimeSeries(since: Date, interval: 'hour' | 'day', sessionIds?: string[]): Promise<TimeSeriesPoint[]> {
     // SQLite-compatible time series query
     const formatStr = interval === 'hour' ? '%Y-%m-%d %H:00:00' : '%Y-%m-%d';
 
-    const raw = await this.messageRepo
+    const query = this.messageRepo
       .createQueryBuilder('m')
       .select(`strftime('${formatStr}', m.createdAt)`, 'timestamp')
       .addSelect(`SUM(CASE WHEN m.direction = 'outgoing' THEN 1 ELSE 0 END)`, 'sent')
       .addSelect(`SUM(CASE WHEN m.direction = 'incoming' THEN 1 ELSE 0 END)`, 'received')
       .where('m.createdAt >= :since', { since })
       .groupBy('timestamp')
-      .orderBy('timestamp', 'ASC')
-      .getRawMany<{ timestamp: string; sent: string; received: string }>();
+      .orderBy('timestamp', 'ASC');
+
+    if (sessionIds) {
+      query.andWhere('m.sessionId IN (:...sessionIds)', { sessionIds });
+    }
+
+    const raw = await query.getRawMany<{ timestamp: string; sent: string; received: string }>();
 
     return raw.map(r => ({
       timestamp: r.timestamp,

@@ -1,13 +1,21 @@
 import { Controller, Get, Post, Delete, Param, Body } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiParam, ApiBody } from '@nestjs/swagger';
 import { SessionService } from '../session/session.service';
+import { CurrentUser } from '../auth/decorators/auth.decorators';
+import { ApiKeyRole } from '../auth/entities/api-key.entity';
+import { User } from '../auth/entities/user.entity';
 
 @ApiTags('labels')
 @Controller('sessions/:sessionId/labels')
 export class LabelController {
   constructor(private readonly sessionService: SessionService) {}
 
-  private getEngine(sessionId: string) {
+  private ownerScope(user?: User): string | undefined {
+    return user && user.role !== ApiKeyRole.ADMIN ? user.id : undefined;
+  }
+
+  private async getEngine(sessionId: string, user?: User) {
+    await this.sessionService.findOne(sessionId, this.ownerScope(user));
     const engine = this.sessionService.getEngine(sessionId);
     if (!engine) {
       throw new Error('Session is not started');
@@ -24,8 +32,8 @@ export class LabelController {
   })
   @ApiResponse({ status: 400, description: 'Session not ready or not a business account' })
   @ApiResponse({ status: 404, description: 'Session not found' })
-  async findAll(@Param('sessionId') sessionId: string) {
-    const engine = this.getEngine(sessionId);
+  async findAll(@Param('sessionId') sessionId: string, @CurrentUser() user?: User) {
+    const engine = await this.getEngine(sessionId, user);
     return engine.getLabels();
   }
 
@@ -38,8 +46,8 @@ export class LabelController {
     description: 'Label details',
   })
   @ApiResponse({ status: 404, description: 'Label not found' })
-  async findOne(@Param('sessionId') sessionId: string, @Param('labelId') labelId: string) {
-    const engine = this.getEngine(sessionId);
+  async findOne(@Param('sessionId') sessionId: string, @Param('labelId') labelId: string, @CurrentUser() user?: User) {
+    const engine = await this.getEngine(sessionId, user);
     const label = await engine.getLabelById(labelId);
     if (!label) {
       throw new Error(`Label ${labelId} not found`);
@@ -55,8 +63,8 @@ export class LabelController {
     status: 200,
     description: 'List of labels for the chat',
   })
-  async getChatLabels(@Param('sessionId') sessionId: string, @Param('chatId') chatId: string) {
-    const engine = this.getEngine(sessionId);
+  async getChatLabels(@Param('sessionId') sessionId: string, @Param('chatId') chatId: string, @CurrentUser() user?: User) {
+    const engine = await this.getEngine(sessionId, user);
     return engine.getChatLabels(chatId);
   }
 
@@ -81,8 +89,9 @@ export class LabelController {
     @Param('sessionId') sessionId: string,
     @Param('chatId') chatId: string,
     @Body() body: { labelId: string },
+    @CurrentUser() user?: User,
   ) {
-    const engine = this.getEngine(sessionId);
+    const engine = await this.getEngine(sessionId, user);
     await engine.addLabelToChat(chatId, body.labelId);
     return { success: true };
   }
@@ -100,8 +109,9 @@ export class LabelController {
     @Param('sessionId') sessionId: string,
     @Param('chatId') chatId: string,
     @Param('labelId') labelId: string,
+    @CurrentUser() user?: User,
   ) {
-    const engine = this.getEngine(sessionId);
+    const engine = await this.getEngine(sessionId, user);
     await engine.removeLabelFromChat(chatId, labelId);
     return { success: true };
   }

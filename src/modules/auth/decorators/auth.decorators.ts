@@ -2,6 +2,7 @@ import { SetMetadata, createParamDecorator, ExecutionContext } from '@nestjs/com
 import { ApiKeyRole } from '../entities/api-key.entity';
 import { Request } from 'express';
 import { ApiKey } from '../entities/api-key.entity';
+import { User } from '../entities/user.entity';
 
 export const REQUIRED_ROLE_KEY = 'requiredRole';
 export const PUBLIC_KEY = 'isPublic';
@@ -25,4 +26,21 @@ export const Public = () => SetMetadata(PUBLIC_KEY, true);
 export const CurrentApiKey = createParamDecorator((data: unknown, ctx: ExecutionContext): ApiKey | undefined => {
   const request = ctx.switchToHttp().getRequest<Request & { apiKey?: ApiKey }>();
   return request.apiKey;
+});
+
+/**
+ * Get the current dashboard user from request
+ * @example @CurrentUser() user: User
+ */
+export const CurrentUser = createParamDecorator((data: unknown, ctx: ExecutionContext): User | undefined => {
+  const request = ctx.switchToHttp().getRequest<Request & { user?: User }>();
+  return request.user;
+});
+
+/**
+ * Get the current authenticated principal from request
+ */
+export const CurrentPrincipal = createParamDecorator((data: unknown, ctx: ExecutionContext): ApiKey | User | undefined => {
+  const request = ctx.switchToHttp().getRequest<Request & { apiKey?: ApiKey; user?: User }>();
+  return request.user || request.apiKey;
 });

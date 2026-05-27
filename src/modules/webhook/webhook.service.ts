@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException, Optional } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import { ConfigService } from '@nestjs/config';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
@@ -69,22 +69,27 @@ export class WebhookService {
     });
   }
 
-  async findAll(): Promise<Webhook[]> {
+  async findAll(sessionIds?: string[]): Promise<Webhook[]> {
+    if (sessionIds && sessionIds.length === 0) {
+      return [];
+    }
+
     return this.webhookRepository.find({
+      where: sessionIds ? { sessionId: In(sessionIds) } : {},
       order: { createdAt: 'DESC' },
     });
   }
 
-  async findOne(id: string): Promise<Webhook> {
-    const webhook = await this.webhookRepository.findOne({ where: { id } });
+  async findOne(id: string, sessionId?: string): Promise<Webhook> {
+    const webhook = await this.webhookRepository.findOne({ where: sessionId ? { id, sessionId } : { id } });
     if (!webhook) {
       throw new NotFoundException(`Webhook with id '${id}' not found`);
     }
     return webhook;
   }
 
-  async update(id: string, dto: UpdateWebhookDto): Promise<Webhook> {
-    const webhook = await this.findOne(id);
+  async update(id: string, dto: UpdateWebhookDto, sessionId?: string): Promise<Webhook> {
+    const webhook = await this.findOne(id, sessionId);
 
     if (dto.url !== undefined) webhook.url = dto.url;
     if (dto.events !== undefined) webhook.events = dto.events;
@@ -96,13 +101,13 @@ export class WebhookService {
     return this.webhookRepository.save(webhook);
   }
 
-  async delete(id: string): Promise<void> {
-    const webhook = await this.findOne(id);
+  async delete(id: string, sessionId?: string): Promise<void> {
+    const webhook = await this.findOne(id, sessionId);
     await this.webhookRepository.remove(webhook);
   }
 
   async test(sessionId: string, webhookId: string): Promise<{ success: boolean; statusCode?: number; error?: string }> {
-    const webhook = await this.findOne(webhookId);
+    const webhook = await this.findOne(webhookId, sessionId);
 
     const testPayload: WebhookPayload = {
       event: 'test',
