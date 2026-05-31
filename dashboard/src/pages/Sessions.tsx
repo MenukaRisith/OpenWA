@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
-import { Plus, QrCode, RefreshCw, Trash2, Eye, Loader2, Play, Square, X, Search, Filter } from 'lucide-react';
+import { Plus, QrCode, RefreshCw, Trash2, Eye, Loader2, Play, Square, X, Search, Filter, LockKeyhole } from 'lucide-react';
 import { sessionApi, type Session } from '../services/api';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
 import { useToast } from '../components/Toast';
@@ -13,7 +13,7 @@ export function Sessions() {
   const { t } = useTranslation();
   useDocumentTitle(t('sessions.title'));
   const toast = useToast();
-  const { canWrite } = useRole();
+  const { canWrite, isAdmin } = useRole();
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -27,6 +27,7 @@ export function Sessions() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   useWebSocket({
+    enabled: isAdmin,
     onSessionStatus: useCallback(
       (event: { sessionId: string; status: string }) => {
         setSessions(prev =>
@@ -251,6 +252,19 @@ export function Sessions() {
           }}
         >
           {error}
+        </div>
+      )}
+
+      {!isAdmin && (
+        <div className="session-addon-panel">
+          <div className="session-addon-icon">
+            <LockKeyhole size={22} />
+          </div>
+          <div>
+            <span>WebSocket add-on required</span>
+            <p>Live session events and incoming message streams are available for $7.99/m.</p>
+          </div>
+          <strong>$7.99/m</strong>
         </div>
       )}
 

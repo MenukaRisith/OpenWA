@@ -23,6 +23,7 @@ interface WebSocketEvents {
   onSessionStatus?: (event: SessionStatusEvent) => void;
   onQRCode?: (event: QRCodeEvent) => void;
   onMessage?: (event: MessageEvent) => void;
+  enabled?: boolean;
 }
 
 // Use current origin for WebSocket (goes through nginx proxy in Docker)
@@ -32,8 +33,10 @@ const SOCKET_URL = import.meta.env.VITE_WS_URL || window.location.origin;
 export function useWebSocket(events: WebSocketEvents = {}) {
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const enabled = events.enabled ?? true;
 
   const connect = useCallback(() => {
+    if (!enabled) return;
     if (socketRef.current?.connected) return;
 
     const authToken = sessionStorage.getItem('openwa_auth_token');
@@ -72,9 +75,18 @@ export function useWebSocket(events: WebSocketEvents = {}) {
     socketRef.current.on('connect_error', error => {
       console.warn('[WebSocket] Connection error:', error.message);
     });
-  }, []);
+  }, [enabled]);
 
   useEffect(() => {
+    if (!enabled) {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
+      setIsConnected(false);
+      return;
+    }
+
     connect();
 
     return () => {
@@ -83,7 +95,7 @@ export function useWebSocket(events: WebSocketEvents = {}) {
         socketRef.current = null;
       }
     };
-  }, [connect]);
+  }, [connect, enabled]);
 
   // Register event handlers
   useEffect(() => {

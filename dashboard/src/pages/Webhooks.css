@@ -4,6 +4,61 @@
   box-sizing: border-box;
 }
 
+.addon-required-panel {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 1rem;
+  align-items: center;
+  padding: 1.25rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--bg-white);
+  box-shadow: var(--shadow-sm);
+}
+
+.addon-icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius);
+  background: var(--bg-secondary);
+  color: var(--primary);
+}
+
+.addon-eyebrow {
+  display: block;
+  margin-bottom: 0.25rem;
+  color: var(--primary);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.addon-required-panel h2 {
+  margin: 0 0 0.35rem;
+  color: var(--text-primary);
+  font-size: 1.15rem;
+}
+
+.addon-required-panel p {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.addon-price {
+  display: flex;
+  align-items: baseline;
+  gap: 0.15rem;
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+.addon-price strong {
+  font-size: 1.5rem;
+}
+
 .page-header {
   margin-bottom: 2rem;
 }

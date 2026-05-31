@@ -7,6 +7,7 @@ import {
   Play,
   ExternalLink,
   Loader2,
+  LockKeyhole,
   X,
   Webhook as WebhookIcon,
   Check,
@@ -37,7 +38,7 @@ const availableEventNames = [
 export function Webhooks() {
   const { t } = useTranslation();
   useDocumentTitle(t('webhooks.title'));
-  const { canWrite } = useRole();
+  const { canWrite, isAdmin } = useRole();
   const { data: webhooks = [], isLoading: loadingWebhooks } = useWebhooksQuery();
   const { data: sessions = [] } = useSessionsQuery();
   const loading = loadingWebhooks;
@@ -182,6 +183,28 @@ export function Webhooks() {
         style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}
       >
         <Loader2 className="animate-spin" size={32} />
+      </div>
+    );
+  }
+
+  if (!isAdmin) {
+    return (
+      <div className="webhooks-page">
+        <PageHeader title={t('webhooks.title')} subtitle={t('webhooks.subtitle')} />
+        <div className="addon-required-panel">
+          <div className="addon-icon">
+            <LockKeyhole size={28} />
+          </div>
+          <div>
+            <span className="addon-eyebrow">Add-on required</span>
+            <h2>Webhooks are available with the Events add-on.</h2>
+            <p>Enable webhook delivery for this tenant to receive incoming messages and session events.</p>
+          </div>
+          <div className="addon-price">
+            <strong>$7.99</strong>
+            <span>/m</span>
+          </div>
+        </div>
       </div>
     );
   }

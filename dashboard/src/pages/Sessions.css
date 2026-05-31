@@ -44,6 +44,45 @@
   margin-bottom: 1.5rem;
 }
 
+.session-addon-panel {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.875rem;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--bg-white);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.session-addon-icon {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  background: var(--bg-secondary);
+  border-radius: var(--radius);
+  color: var(--primary);
+}
+
+.session-addon-panel span {
+  display: block;
+  color: var(--text-primary);
+  font-weight: 700;
+}
+
+.session-addon-panel p {
+  margin: 0.2rem 0 0;
+  color: var(--text-secondary);
+}
+
+.session-addon-panel strong {
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
 .search-input {
   display: flex;
   align-items: center;
