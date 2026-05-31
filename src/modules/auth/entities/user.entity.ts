@@ -13,6 +13,9 @@ export class User {
   @Column({ type: 'varchar', length: 100 })
   displayName: string;
 
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  tenantId: string | null;
+
   @Column({ type: 'varchar', length: 255 })
   passwordHash: string;
 

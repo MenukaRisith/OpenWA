@@ -11,7 +11,7 @@ export class LabelController {
   constructor(private readonly sessionService: SessionService) {}
 
   private ownerScope(user?: User): string | undefined {
-    return user && user.role !== ApiKeyRole.ADMIN ? user.id : undefined;
+    return user && user.role !== ApiKeyRole.ADMIN ? user.tenantId || user.id : undefined;
   }
 
   private async getEngine(sessionId: string, user?: User) {

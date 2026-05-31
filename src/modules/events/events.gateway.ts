@@ -11,7 +11,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { AuthService } from '../auth/auth.service';
 import { ApiKey, ApiKeyRole } from '../auth/entities/api-key.entity';
 import { User } from '../auth/entities/user.entity';
@@ -223,16 +223,26 @@ export class EventsGateway implements OnGatewayInit, OnGatewayConnection, OnGate
 
     if (principal.user) {
       if (principal.user.role === ApiKeyRole.ADMIN) return true;
-      return !!(await this.sessionRepository.findOne({ where: { id: sessionId, ownerUserId: principal.user.id } }));
+      const tenantId = principal.user.tenantId || principal.user.id;
+      return !!(await this.sessionRepository.findOne({
+        where: [
+          { id: sessionId, tenantId },
+          { id: sessionId, ownerUserId: tenantId, tenantId: IsNull() },
+        ],
+      }));
     }
 
     if (principal.apiKey) {
       if (principal.apiKey.allowedSessions?.length && !principal.apiKey.allowedSessions.includes(sessionId)) {
         return false;
       }
-      if (!principal.apiKey.ownerUserId || principal.apiKey.role === ApiKeyRole.ADMIN) return true;
+      const tenantId = principal.apiKey.tenantId || principal.apiKey.ownerUserId;
+      if (!tenantId || principal.apiKey.role === ApiKeyRole.ADMIN) return true;
       return !!(await this.sessionRepository.findOne({
-        where: { id: sessionId, ownerUserId: principal.apiKey.ownerUserId },
+        where: [
+          { id: sessionId, tenantId },
+          { id: sessionId, ownerUserId: tenantId, tenantId: IsNull() },
+        ],
       }));
     }
 

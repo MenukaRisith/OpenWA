@@ -7,7 +7,7 @@ import {
   OnModuleInit,
 } from '@nestjs/common';
 import { InjectRepository, InjectDataSource } from '@nestjs/typeorm';
-import { Repository, In, DataSource } from 'typeorm';
+import { DataSource, FindOptionsWhere, In, IsNull, Repository } from 'typeorm';
 import { Session, SessionStatus } from './entities/session.entity';
 import { CreateSessionDto } from './dto';
 import { EngineFactory } from '../../engine/engine.factory';
@@ -90,11 +90,11 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     this.reconnectStates.clear();
   }
 
-  async create(dto: CreateSessionDto, ownerUserId?: string): Promise<Session> {
-    if (ownerUserId) {
-      const existingOwnedSessions = await this.sessionRepository.count({ where: { ownerUserId } });
+  async create(dto: CreateSessionDto, ownerUserId?: string, tenantId?: string): Promise<Session> {
+    if (tenantId) {
+      const existingOwnedSessions = await this.sessionRepository.count({ where: this.sessionTenantWhere(tenantId) });
       if (existingOwnedSessions >= 1) {
-        throw new ConflictException('Client users can create only one WhatsApp session');
+        throw new ConflictException('Tenants can create only one WhatsApp session');
       }
     }
 
@@ -110,6 +110,7 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     const session = this.sessionRepository.create({
       name: dto.name,
       ownerUserId: ownerUserId || null,
+      tenantId: tenantId || null,
       config: dto.config || {},
       proxyUrl: dto.proxyUrl || null,
       proxyType: dto.proxyType || null,
@@ -133,16 +134,16 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     return saved;
   }
 
-  async findAll(ownerUserId?: string): Promise<Session[]> {
+  async findAll(tenantId?: string): Promise<Session[]> {
     return this.sessionRepository.find({
-      where: ownerUserId ? { ownerUserId } : {},
+      where: tenantId ? this.sessionTenantWhere(tenantId) : {},
       order: { createdAt: 'DESC' },
     });
   }
 
-  async findOne(id: string, ownerUserId?: string): Promise<Session> {
+  async findOne(id: string, tenantId?: string): Promise<Session> {
     const session = await this.sessionRepository.findOne({
-      where: ownerUserId ? { id, ownerUserId } : { id },
+      where: tenantId ? this.sessionTenantWhere(tenantId, id) : { id },
     });
     if (!session) {
       throw new NotFoundException(`Session with id '${id}' not found`);
@@ -158,8 +159,8 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     return session;
   }
 
-  async delete(id: string, ownerUserId?: string): Promise<void> {
-    const session = await this.findOne(id, ownerUserId);
+  async delete(id: string, tenantId?: string): Promise<void> {
+    const session = await this.findOne(id, tenantId);
 
     // Cancel any reconnection attempts
     this.cancelReconnect(id);
@@ -195,8 +196,8 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     });
   }
 
-  async start(id: string, ownerUserId?: string): Promise<Session> {
-    const session = await this.findOne(id, ownerUserId);
+  async start(id: string, tenantId?: string): Promise<Session> {
+    const session = await this.findOne(id, tenantId);
 
     if (this.engines.has(id)) {
       throw new BadRequestException('Session is already started');
@@ -427,8 +428,8 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     this.reconnectStates.delete(id);
   }
 
-  async stop(id: string, ownerUserId?: string): Promise<Session> {
-    const session = await this.findOne(id, ownerUserId);
+  async stop(id: string, tenantId?: string): Promise<Session> {
+    const session = await this.findOne(id, tenantId);
 
     // Cancel any reconnection attempts
     this.cancelReconnect(id);
@@ -445,11 +446,11 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
       action: 'stop',
     });
     await this.updateStatus(id, SessionStatus.DISCONNECTED);
-    return this.findOne(id);
+    return this.findOne(id, tenantId);
   }
 
-  async getQRCode(id: string, ownerUserId?: string): Promise<{ qrCode: string; status: SessionStatus }> {
-    const session = await this.findOne(id, ownerUserId);
+  async getQRCode(id: string, tenantId?: string): Promise<{ qrCode: string; status: SessionStatus }> {
+    const session = await this.findOne(id, tenantId);
     const engine = this.engines.get(id);
 
     if (!engine) {
@@ -475,8 +476,8 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     return this.engines.get(id);
   }
 
-  async getGroups(id: string, ownerUserId?: string): Promise<{ id: string; name: string }[]> {
-    await this.findOne(id, ownerUserId); // Verify session exists and is accessible
+  async getGroups(id: string, tenantId?: string): Promise<{ id: string; name: string }[]> {
+    await this.findOne(id, tenantId); // Verify session exists and is accessible
     const engine = this.engines.get(id);
 
     if (!engine) {
@@ -504,7 +505,7 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
   /**
    * Get overall session statistics for multi-session monitoring
    */
-  async getStats(ownerUserId?: string): Promise<{
+  async getStats(tenantId?: string): Promise<{
     total: number;
     active: number;
     ready: number;
@@ -512,7 +513,7 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     byStatus: Record<string, number>;
     memoryUsage: { heapUsed: number; heapTotal: number; rss: number };
   }> {
-    const sessions = await this.findAll(ownerUserId);
+    const sessions = await this.findAll(tenantId);
     const byStatus: Record<string, number> = {};
 
     for (const session of sessions) {
@@ -533,6 +534,14 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
         rss: Math.round(memory.rss / 1024 / 1024),
       },
     };
+  }
+
+  private sessionTenantWhere(tenantId: string, id?: string): Array<FindOptionsWhere<Session>> {
+    const base = id ? { id } : {};
+    return [
+      { ...base, tenantId },
+      { ...base, ownerUserId: tenantId, tenantId: IsNull() },
+    ];
   }
 
   /**

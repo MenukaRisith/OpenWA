@@ -32,8 +32,8 @@ export class SessionController {
     };
   }
 
-  private ownerScope(user?: User): string | undefined {
-    return user && user.role !== ApiKeyRole.ADMIN ? user.id : undefined;
+  private tenantScope(user?: User): string | undefined {
+    return user && user.role !== ApiKeyRole.ADMIN ? user.tenantId || user.id : undefined;
   }
 
   @Post()
@@ -46,7 +46,7 @@ export class SessionController {
   })
   @ApiResponse({ status: 409, description: 'Session name already exists' })
   async create(@Body() dto: CreateSessionDto, @CurrentUser() user?: User): Promise<Session> {
-    const session = await this.sessionService.create(dto, this.ownerScope(user));
+    const session = await this.sessionService.create(dto, user?.id, this.tenantScope(user));
     await this.auditService.logInfo(AuditAction.SESSION_CREATED, {
       sessionId: session.id,
       sessionName: session.name,
@@ -62,7 +62,7 @@ export class SessionController {
     type: [SessionResponseDto],
   })
   async findAll(@CurrentUser() user?: User): Promise<SessionResponseDto[]> {
-    const sessions = await this.sessionService.findAll(this.ownerScope(user));
+    const sessions = await this.sessionService.findAll(this.tenantScope(user));
     return sessions.map(s => this.transformSession(s));
   }
 
@@ -76,7 +76,7 @@ export class SessionController {
   })
   @ApiResponse({ status: 404, description: 'Session not found' })
   async findOne(@Param('id') id: string, @CurrentUser() user?: User): Promise<SessionResponseDto> {
-    const session = await this.sessionService.findOne(id, this.ownerScope(user));
+    const session = await this.sessionService.findOne(id, this.tenantScope(user));
     return this.transformSession(session);
   }
 
@@ -88,9 +88,9 @@ export class SessionController {
   @ApiResponse({ status: 204, description: 'Session deleted' })
   @ApiResponse({ status: 404, description: 'Session not found' })
   async delete(@Param('id') id: string, @CurrentUser() user?: User): Promise<void> {
-    const ownerUserId = this.ownerScope(user);
-    const session = await this.sessionService.findOne(id, ownerUserId);
-    await this.sessionService.delete(id, ownerUserId);
+    const tenantId = this.tenantScope(user);
+    const session = await this.sessionService.findOne(id, tenantId);
+    await this.sessionService.delete(id, tenantId);
     await this.auditService.logInfo(AuditAction.SESSION_DELETED, {
       sessionId: id,
       sessionName: session.name,
@@ -111,7 +111,7 @@ export class SessionController {
   @ApiResponse({ status: 400, description: 'Session already started' })
   @ApiResponse({ status: 404, description: 'Session not found' })
   async start(@Param('id') id: string, @CurrentUser() user?: User): Promise<SessionResponseDto> {
-    const session = await this.sessionService.start(id, this.ownerScope(user));
+    const session = await this.sessionService.start(id, this.tenantScope(user));
     await this.auditService.logInfo(AuditAction.SESSION_STARTED, {
       sessionId: session.id,
       sessionName: session.name,
@@ -130,7 +130,7 @@ export class SessionController {
   })
   @ApiResponse({ status: 404, description: 'Session not found' })
   async stop(@Param('id') id: string, @CurrentUser() user?: User): Promise<SessionResponseDto> {
-    const session = await this.sessionService.stop(id, this.ownerScope(user));
+    const session = await this.sessionService.stop(id, this.tenantScope(user));
     await this.auditService.logInfo(AuditAction.SESSION_STOPPED, {
       sessionId: session.id,
       sessionName: session.name,
@@ -152,7 +152,7 @@ export class SessionController {
   })
   @ApiResponse({ status: 404, description: 'Session not found' })
   async getQRCode(@Param('id') id: string, @CurrentUser() user?: User): Promise<QRCodeResponseDto> {
-    const qrCode = await this.sessionService.getQRCode(id, this.ownerScope(user));
+    const qrCode = await this.sessionService.getQRCode(id, this.tenantScope(user));
     await this.auditService.logInfo(AuditAction.SESSION_QR_GENERATED, {
       sessionId: id,
     });
@@ -169,7 +169,7 @@ export class SessionController {
   @ApiResponse({ status: 400, description: 'Session not ready' })
   @ApiResponse({ status: 404, description: 'Session not found' })
   async getGroups(@Param('id') id: string, @CurrentUser() user?: User): Promise<{ id: string; name: string }[]> {
-    return this.sessionService.getGroups(id, this.ownerScope(user));
+    return this.sessionService.getGroups(id, this.tenantScope(user));
   }
 
   @Get('stats/overview')
@@ -188,6 +188,6 @@ export class SessionController {
     byStatus: Record<string, number>;
     memoryUsage: { heapUsed: number; heapTotal: number; rss: number };
   }> {
-    return this.sessionService.getStats(this.ownerScope(user));
+    return this.sessionService.getStats(this.tenantScope(user));
   }
 }

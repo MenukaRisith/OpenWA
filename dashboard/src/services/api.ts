@@ -57,6 +57,7 @@ export interface User {
   id: string;
   username: string;
   displayName: string;
+  tenantId: string;
   role: 'admin' | 'operator' | 'viewer';
   isActive: boolean;
   lastLoginAt?: string;
@@ -201,12 +202,12 @@ export const authApi = {
 
 export const userApi = {
   list: () => request<User[]>('/auth/users'),
-  create: (data: { username: string; displayName: string; password: string; role: User['role'] }) =>
+  create: (data: { username: string; displayName: string; tenantId?: string; password: string; role: User['role'] }) =>
     request<User>('/auth/users', {
       method: 'POST',
       body: JSON.stringify(data),
     }),
-  update: (id: string, data: Partial<Pick<User, 'displayName' | 'role' | 'isActive'>> & { password?: string }) =>
+  update: (id: string, data: Partial<Pick<User, 'displayName' | 'tenantId' | 'role' | 'isActive'>> & { password?: string }) =>
     request<User>(`/auth/users/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data),

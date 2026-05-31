@@ -26,6 +26,14 @@ export class CreateUserDto {
   @MaxLength(100)
   displayName: string;
 
+  @ApiPropertyOptional({ example: 'acme', description: 'Tenant slug. Users with the same tenant share sessions and API keys.' })
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(64)
+  @Matches(/^[a-zA-Z0-9._-]+$/)
+  tenantId?: string;
+
   @ApiProperty({ example: 'change-me-now' })
   @IsString()
   @MinLength(8)
@@ -45,6 +53,14 @@ export class UpdateUserDto {
   @MinLength(2)
   @MaxLength(100)
   displayName?: string;
+
+  @ApiPropertyOptional({ example: 'acme', description: 'Tenant slug. Users with the same tenant share sessions and API keys.' })
+  @IsOptional()
+  @IsString()
+  @MinLength(2)
+  @MaxLength(64)
+  @Matches(/^[a-zA-Z0-9._-]+$/)
+  tenantId?: string;
 
   @ApiPropertyOptional({ enum: ApiKeyRole })
   @IsOptional()
@@ -73,6 +89,9 @@ export class UserResponseDto {
 
   @ApiProperty()
   displayName: string;
+
+  @ApiProperty()
+  tenantId: string;
 
   @ApiProperty({ enum: ApiKeyRole })
   role: ApiKeyRole;

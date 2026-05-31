@@ -6,7 +6,7 @@ import { CurrentUser } from '../auth/decorators/auth.decorators';
 import { User } from '../auth/entities/user.entity';
 import { ApiKeyRole } from '../auth/entities/api-key.entity';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { Session } from '../session/entities/session.entity';
 
 @ApiTags('audit')
@@ -47,7 +47,13 @@ export class AuditController {
     if (limit) options.limit = parseInt(limit, 10);
     if (offset) options.offset = parseInt(offset, 10);
     if (user && user.role !== ApiKeyRole.ADMIN) {
-      const sessions = await this.sessionRepository.find({ where: { ownerUserId: user.id } });
+      const tenantId = user.tenantId || user.id;
+      const sessions = await this.sessionRepository.find({
+        where: [
+          { tenantId },
+          { ownerUserId: tenantId, tenantId: IsNull() },
+        ],
+      });
       const visibleSessionIds = sessions.map(session => session.id);
 
       if (sessionId && !visibleSessionIds.includes(sessionId)) {

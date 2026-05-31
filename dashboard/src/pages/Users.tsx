@@ -22,6 +22,7 @@ const roles = ['admin', 'operator', 'viewer'] as const;
 const emptyForm = {
   username: '',
   displayName: '',
+  tenantId: '',
   password: '',
   role: 'viewer' as User['role'],
 };
@@ -37,13 +38,20 @@ export function Users() {
   const [showCreate, setShowCreate] = useState(false);
   const [form, setForm] = useState(emptyForm);
   const [editing, setEditing] = useState<User | null>(null);
-  const [editForm, setEditForm] = useState({ displayName: '', role: 'viewer' as User['role'], isActive: true, password: '' });
+  const [editForm, setEditForm] = useState({
+    displayName: '',
+    tenantId: '',
+    role: 'viewer' as User['role'],
+    isActive: true,
+    password: '',
+  });
   const [error, setError] = useState('');
 
   const openEdit = (user: User) => {
     setEditing(user);
     setEditForm({
       displayName: user.displayName,
+      tenantId: user.tenantId,
       role: user.role,
       isActive: user.isActive,
       password: '',
@@ -54,7 +62,8 @@ export function Users() {
   const handleCreate = async () => {
     setError('');
     try {
-      await createMutation.mutateAsync(form);
+      const tenantId = form.tenantId.trim();
+      await createMutation.mutateAsync({ ...form, ...(tenantId ? { tenantId } : {}) });
       setForm(emptyForm);
       setShowCreate(false);
     } catch (err) {
@@ -68,6 +77,7 @@ export function Users() {
     try {
       const data = {
         displayName: editForm.displayName,
+        tenantId: editForm.tenantId.trim(),
         role: editForm.role,
         isActive: editForm.isActive,
         ...(editForm.password ? { password: editForm.password } : {}),
@@ -103,6 +113,10 @@ export function Users() {
       columnHelper.accessor('role', {
         header: () => 'Role',
         cell: info => <span className="permission-badge">{info.getValue()}</span>,
+      }),
+      columnHelper.accessor('tenantId', {
+        header: () => 'Tenant',
+        cell: info => <code>{info.getValue()}</code>,
       }),
       columnHelper.accessor('isActive', {
         header: () => 'Status',
@@ -232,6 +246,17 @@ export function Users() {
                     : setForm({ ...form, displayName: e.target.value })
                 }
                 placeholder="Operations User"
+              />
+              <label>Tenant</label>
+              <input
+                type="text"
+                value={editing ? editForm.tenantId : form.tenantId}
+                onChange={e =>
+                  editing
+                    ? setEditForm({ ...editForm, tenantId: e.target.value })
+                    : setForm({ ...form, tenantId: e.target.value })
+                }
+                placeholder={editing ? 'tenant-slug' : 'Blank creates a personal tenant'}
               />
               <label>Role</label>
               <select

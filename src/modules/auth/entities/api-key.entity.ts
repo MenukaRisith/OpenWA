@@ -17,6 +17,9 @@ export class ApiKey {
   @Column({ type: 'varchar', length: 36, nullable: true })
   ownerUserId: string | null;
 
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  tenantId: string | null;
+
   @Index({ unique: true })
   @Column({ type: 'varchar', length: 64 })
   keyHash: string;

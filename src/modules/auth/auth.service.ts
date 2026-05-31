@@ -7,7 +7,7 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { FindOptionsWhere, IsNull, Repository } from 'typeorm';
 import { createHash, pbkdf2Sync, randomBytes, timingSafeEqual } from 'crypto';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
@@ -116,6 +116,7 @@ export class AuthService implements OnModuleInit {
     const apiKey = this.apiKeyRepository.create({
       name,
       ownerUserId: null,
+      tenantId: null,
       keyHash,
       keyPrefix,
       role,
@@ -128,6 +129,7 @@ export class AuthService implements OnModuleInit {
     const user = this.userRepository.create({
       username: this.normalizeUsername(username),
       displayName,
+      tenantId: this.normalizeTenantId(username),
       passwordHash: this.hashPassword(password),
       role,
     });
@@ -152,13 +154,18 @@ export class AuthService implements OnModuleInit {
       existing.role = ApiKeyRole.ADMIN;
       existing.isActive = true;
       existing.sessionTokenHash = null;
+      existing.tenantId = existing.tenantId || this.normalizeTenantId(username);
       return this.userRepository.save(existing);
     }
 
     return this.seedUser(username, 'Configured Admin', configuredPassword, ApiKeyRole.ADMIN);
   }
 
-  async createApiKey(dto: CreateApiKeyDto, ownerUserId?: string): Promise<{ apiKey: ApiKey; rawKey: string }> {
+  async createApiKey(
+    dto: CreateApiKeyDto,
+    ownerUserId?: string,
+    tenantId?: string,
+  ): Promise<{ apiKey: ApiKey; rawKey: string }> {
     const rawKey = `owa_k1_${randomBytes(32).toString('hex')}`;
     const keyHash = this.hashKey(rawKey);
     const keyPrefix = rawKey.substring(0, 12);
@@ -166,6 +173,7 @@ export class AuthService implements OnModuleInit {
     const apiKey = this.apiKeyRepository.create({
       name: dto.name,
       ownerUserId: ownerUserId || null,
+      tenantId: tenantId || null,
       keyHash,
       keyPrefix,
       role: dto.role || ApiKeyRole.OPERATOR,
@@ -184,23 +192,25 @@ export class AuthService implements OnModuleInit {
     return { apiKey: saved, rawKey };
   }
 
-  async findAll(ownerUserId?: string): Promise<ApiKey[]> {
+  async findAll(tenantId?: string): Promise<ApiKey[]> {
     return this.apiKeyRepository.find({
-      where: ownerUserId ? { ownerUserId } : {},
+      where: tenantId ? this.apiKeyTenantWhere(tenantId) : {},
       order: { createdAt: 'DESC' },
     });
   }
 
-  async findOne(id: string, ownerUserId?: string): Promise<ApiKey> {
-    const apiKey = await this.apiKeyRepository.findOne({ where: ownerUserId ? { id, ownerUserId } : { id } });
+  async findOne(id: string, tenantId?: string): Promise<ApiKey> {
+    const apiKey = await this.apiKeyRepository.findOne({
+      where: tenantId ? this.apiKeyTenantWhere(tenantId, id) : { id },
+    });
     if (!apiKey) {
       throw new NotFoundException(`API key with id '${id}' not found`);
     }
     return apiKey;
   }
 
-  async update(id: string, dto: UpdateApiKeyDto, ownerUserId?: string): Promise<ApiKey> {
-    const apiKey = await this.findOne(id, ownerUserId);
+  async update(id: string, dto: UpdateApiKeyDto, tenantId?: string): Promise<ApiKey> {
+    const apiKey = await this.findOne(id, tenantId);
 
     if (dto.name) apiKey.name = dto.name;
     if (dto.role) apiKey.role = dto.role;
@@ -211,8 +221,8 @@ export class AuthService implements OnModuleInit {
     return this.apiKeyRepository.save(apiKey);
   }
 
-  async delete(id: string, ownerUserId?: string): Promise<void> {
-    const apiKey = await this.findOne(id, ownerUserId);
+  async delete(id: string, tenantId?: string): Promise<void> {
+    const apiKey = await this.findOne(id, tenantId);
     await this.apiKeyRepository.remove(apiKey);
     this.logger.log(`API key deleted: ${apiKey.name}`, {
       keyId: id,
@@ -220,8 +230,8 @@ export class AuthService implements OnModuleInit {
     });
   }
 
-  async revoke(id: string, ownerUserId?: string): Promise<ApiKey> {
-    const apiKey = await this.findOne(id, ownerUserId);
+  async revoke(id: string, tenantId?: string): Promise<ApiKey> {
+    const apiKey = await this.findOne(id, tenantId);
     apiKey.isActive = false;
     return this.apiKeyRepository.save(apiKey);
   }
@@ -286,6 +296,7 @@ export class AuthService implements OnModuleInit {
     const user = this.userRepository.create({
       username,
       displayName: dto.displayName,
+      tenantId: this.normalizeTenantId(dto.tenantId || username),
       passwordHash: this.hashPassword(dto.password),
       role: dto.role || ApiKeyRole.VIEWER,
       isActive: true,
@@ -302,6 +313,7 @@ export class AuthService implements OnModuleInit {
     await this.ensureAdminRemains(user, nextRole, nextIsActive);
 
     if (dto.displayName !== undefined) user.displayName = dto.displayName;
+    if (dto.tenantId !== undefined) user.tenantId = this.normalizeTenantId(dto.tenantId);
     if (dto.role !== undefined) user.role = dto.role;
     if (dto.isActive !== undefined) user.isActive = dto.isActive;
     if (dto.password !== undefined) {
@@ -386,6 +398,21 @@ export class AuthService implements OnModuleInit {
 
   private normalizeUsername(username: string): string {
     return username.trim().toLowerCase();
+  }
+  normalizeTenantId(tenantId: string): string {
+    return tenantId.trim().toLowerCase();
+  }
+
+  getTenantId(user: Pick<User, 'id' | 'tenantId' | 'role'>): string | undefined {
+    return user.role === ApiKeyRole.ADMIN ? undefined : user.tenantId || user.id;
+  }
+
+  private apiKeyTenantWhere(tenantId: string, id?: string): Array<FindOptionsWhere<ApiKey>> {
+    const base = id ? { id } : {};
+    return [
+      { ...base, tenantId },
+      { ...base, ownerUserId: tenantId, tenantId: IsNull() },
+    ];
   }
 
   private async ensureAdminRemains(user: User, nextRole: ApiKeyRole, nextIsActive: boolean): Promise<void> {

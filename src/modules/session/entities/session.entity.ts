@@ -23,6 +23,9 @@ export class Session {
   @Column({ type: 'varchar', length: 36, nullable: true })
   ownerUserId: string | null;
 
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  tenantId: string | null;
+
   @Column({
     type: 'varchar',
     length: 50,

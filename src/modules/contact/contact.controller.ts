@@ -11,7 +11,7 @@ export class ContactController {
   constructor(private readonly sessionService: SessionService) {}
 
   private ownerScope(user?: User): string | undefined {
-    return user && user.role !== ApiKeyRole.ADMIN ? user.id : undefined;
+    return user && user.role !== ApiKeyRole.ADMIN ? user.tenantId || user.id : undefined;
   }
 
   @Get()

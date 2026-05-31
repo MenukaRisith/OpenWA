@@ -1,6 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { In, Repository } from 'typeorm';
+import { In, IsNull, Repository } from 'typeorm';
 import { Session, SessionStatus } from '../session/entities/session.entity';
 import { Message, MessageStatus } from '../message/entities/message.entity';
 import { CacheService } from '../../common/cache';
@@ -220,8 +220,15 @@ export class StatsService {
     };
   }
 
-  async getSessionStats(sessionId: string, ownerUserId?: string): Promise<SessionStats> {
-    const session = await this.sessionRepo.findOne({ where: ownerUserId ? { id: sessionId, ownerUserId } : { id: sessionId } });
+  async getSessionStats(sessionId: string, tenantId?: string): Promise<SessionStats> {
+    const session = await this.sessionRepo.findOne({
+      where: tenantId
+        ? [
+            { id: sessionId, tenantId },
+            { id: sessionId, ownerUserId: tenantId, tenantId: IsNull() },
+          ]
+        : { id: sessionId },
+    });
     if (!session) {
       throw new NotFoundException('Session not found');
     }

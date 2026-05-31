@@ -12,8 +12,8 @@ import { User } from './entities/user.entity';
 export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
-  private ownerScope(user?: User): string | undefined {
-    return user && user.role !== ApiKeyRole.ADMIN ? user.id : undefined;
+  private tenantScope(user?: User): string | undefined {
+    return user ? this.authService.getTenantId(user) : undefined;
   }
 
   private assertCanAssignRole(user: User | undefined, role: ApiKeyRole | undefined): void {
@@ -32,7 +32,7 @@ export class AuthController {
   })
   async create(@Body() dto: CreateApiKeyDto, @CurrentUser() user?: User): Promise<ApiKeyCreatedResponseDto> {
     this.assertCanAssignRole(user, dto.role);
-    const { apiKey, rawKey } = await this.authService.createApiKey(dto, this.ownerScope(user));
+    const { apiKey, rawKey } = await this.authService.createApiKey(dto, user?.id, this.tenantScope(user));
     return {
       id: apiKey.id,
       name: apiKey.name,
@@ -54,7 +54,7 @@ export class AuthController {
   @ApiOperation({ summary: 'List API keys' })
   @ApiResponse({ status: 200, type: [ApiKeyResponseDto] })
   async findAll(@CurrentUser() user?: User): Promise<ApiKeyResponseDto[]> {
-    const keys = await this.authService.findAll(this.ownerScope(user));
+    const keys = await this.authService.findAll(this.tenantScope(user));
     return keys.map(k => ({
       id: k.id,
       name: k.name,
@@ -75,7 +75,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Get API key details' })
   @ApiResponse({ status: 200, type: ApiKeyResponseDto })
   async findOne(@Param('id') id: string, @CurrentUser() user?: User): Promise<ApiKeyResponseDto> {
-    const k = await this.authService.findOne(id, this.ownerScope(user));
+    const k = await this.authService.findOne(id, this.tenantScope(user));
     return {
       id: k.id,
       name: k.name,
@@ -97,7 +97,7 @@ export class AuthController {
   @ApiResponse({ status: 200, type: ApiKeyResponseDto })
   async update(@Param('id') id: string, @Body() dto: UpdateApiKeyDto, @CurrentUser() user?: User): Promise<ApiKeyResponseDto> {
     this.assertCanAssignRole(user, dto.role);
-    const k = await this.authService.update(id, dto, this.ownerScope(user));
+    const k = await this.authService.update(id, dto, this.tenantScope(user));
     return {
       id: k.id,
       name: k.name,
@@ -119,7 +119,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Delete API key' })
   @ApiResponse({ status: 204, description: 'API key deleted' })
   async delete(@Param('id') id: string, @CurrentUser() user?: User): Promise<void> {
-    await this.authService.delete(id, this.ownerScope(user));
+    await this.authService.delete(id, this.tenantScope(user));
   }
 
   @Post(':id/revoke')
@@ -127,7 +127,7 @@ export class AuthController {
   @ApiOperation({ summary: 'Revoke API key' })
   @ApiResponse({ status: 200, type: ApiKeyResponseDto })
   async revoke(@Param('id') id: string, @CurrentUser() user?: User): Promise<ApiKeyResponseDto> {
-    const k = await this.authService.revoke(id, this.ownerScope(user));
+    const k = await this.authService.revoke(id, this.tenantScope(user));
     return {
       id: k.id,
       name: k.name,

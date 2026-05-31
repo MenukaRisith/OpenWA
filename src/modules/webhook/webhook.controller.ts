@@ -17,7 +17,7 @@ export class WebhookController {
   ) {}
 
   private ownerScope(user?: User): string | undefined {
-    return user && user.role !== ApiKeyRole.ADMIN ? user.id : undefined;
+    return user && user.role !== ApiKeyRole.ADMIN ? user.tenantId || user.id : undefined;
   }
 
   @Post()

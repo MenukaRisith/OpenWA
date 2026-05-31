@@ -50,6 +50,7 @@ export class UsersController {
       id: user.id,
       username: user.username,
       displayName: user.displayName,
+      tenantId: user.tenantId || user.id,
       role: user.role,
       isActive: user.isActive,
       lastLoginAt: user.lastLoginAt || undefined,

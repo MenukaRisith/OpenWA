@@ -18,7 +18,7 @@ export class StatsController {
 
   private async visibleSessionIds(user?: User): Promise<string[] | undefined> {
     if (!user || user.role === ApiKeyRole.ADMIN) return undefined;
-    const sessions = await this.sessionService.findAll(user.id);
+    const sessions = await this.sessionService.findAll(user.tenantId || user.id);
     return sessions.map(session => session.id);
   }
 
@@ -37,7 +37,7 @@ export class StatsController {
   @Get('sessions/:sessionId')
   @ApiOperation({ summary: 'Get statistics for a specific session' })
   async getSessionStats(@Param('sessionId') sessionId: string, @CurrentUser() user?: User) {
-    const ownerUserId = user && user.role !== ApiKeyRole.ADMIN ? user.id : undefined;
-    return this.statsService.getSessionStats(sessionId, ownerUserId);
+    const tenantId = user && user.role !== ApiKeyRole.ADMIN ? user.tenantId || user.id : undefined;
+    return this.statsService.getSessionStats(sessionId, tenantId);
   }
 }

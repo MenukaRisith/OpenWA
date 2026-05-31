@@ -39,6 +39,7 @@ export const CurrentUser = createParamDecorator((data: unknown, ctx: ExecutionCo
   if (request.apiKey?.ownerUserId) {
     return {
       id: request.apiKey.ownerUserId,
+      tenantId: request.apiKey.tenantId || request.apiKey.ownerUserId,
       role: request.apiKey.role,
     } as User;
   }

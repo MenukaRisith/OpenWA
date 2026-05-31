@@ -23,7 +23,7 @@ export class WebhooksListController {
   })
   async findAll(@CurrentUser() user?: User): Promise<Webhook[]> {
     if (user && user.role !== ApiKeyRole.ADMIN) {
-      const sessions = await this.sessionService.findAll(user.id);
+      const sessions = await this.sessionService.findAll(user.tenantId || user.id);
       return this.webhookService.findAll(sessions.map(session => session.id));
     }
     return this.webhookService.findAll();
