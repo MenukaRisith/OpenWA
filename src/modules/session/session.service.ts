@@ -243,6 +243,20 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     });
     this.engines.set(id, engine);
 
+    try {
+      await this.startEngine(id, session, engine);
+    } catch (error) {
+      // Engine failed to launch (e.g. Chromium crash) - clear the orphaned
+      // entry so a subsequent start() attempt doesn't get stuck behind
+      // "already started" while getQRCode() never has a working engine.
+      this.engines.delete(id);
+      this.cancelReconnect(id);
+      await this.updateStatus(id, SessionStatus.FAILED);
+      throw error;
+    }
+  }
+
+  private async startEngine(id: string, session: Session, engine: IWhatsAppEngine): Promise<void> {
     await engine.initialize({
       onQRCode: (): void => {
         this.logger.log('QR code generated', {

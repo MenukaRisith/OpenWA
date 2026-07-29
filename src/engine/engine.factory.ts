@@ -42,7 +42,14 @@ export class EngineFactory implements OnModuleInit {
     };
 
     const wwjsPlugin = new WhatsAppWebJsPlugin();
-    this.pluginLoader.registerBuiltInPlugin(wwjsManifest, wwjsPlugin);
+    this.pluginLoader.registerBuiltInPlugin(wwjsManifest, wwjsPlugin, {
+      sessionDataPath: this.configService.get<string>('engine.sessionDataPath') ?? './data/sessions',
+      headless: this.configService.get<boolean>('engine.puppeteer.headless') ?? true,
+      puppeteerArgs: this.configService.get<string[]>('engine.puppeteer.args') ?? [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+      ],
+    });
 
     // Auto-enable the configured engine
     try {
