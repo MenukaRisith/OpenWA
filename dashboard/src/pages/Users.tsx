@@ -27,7 +27,7 @@ const emptyForm = {
   role: 'viewer' as User['role'],
 };
 const columnHelper = createColumnHelper<User>();
- 
+
 export function Users() {
   useDocumentTitle('Users');
   const { data: users = [], isLoading } = useUsersQuery();
