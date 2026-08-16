@@ -94,7 +94,7 @@ export class MessageService {
     });
 
     try {
-      const result = await engine.sendImageMessage(dto.chatId, media);
+      const result = await this.withSendTimeout(sessionId, () => engine.sendImageMessage(dto.chatId, media));
 
       // Update with actual WhatsApp message ID and status
       message.waMessageId = result.id;
@@ -125,7 +125,7 @@ export class MessageService {
     });
 
     try {
-      const result = await engine.sendVideoMessage(dto.chatId, media);
+      const result = await this.withSendTimeout(sessionId, () => engine.sendVideoMessage(dto.chatId, media));
 
       // Update with actual WhatsApp message ID and status
       message.waMessageId = result.id;
@@ -155,7 +155,7 @@ export class MessageService {
     });
 
     try {
-      const result = await engine.sendAudioMessage(dto.chatId, media);
+      const result = await this.withSendTimeout(sessionId, () => engine.sendAudioMessage(dto.chatId, media));
 
       // Update with actual WhatsApp message ID and status
       message.waMessageId = result.id;
@@ -186,7 +186,7 @@ export class MessageService {
     });
 
     try {
-      const result = await engine.sendDocumentMessage(dto.chatId, media);
+      const result = await this.withSendTimeout(sessionId, () => engine.sendDocumentMessage(dto.chatId, media));
 
       // Update with actual WhatsApp message ID and status
       message.waMessageId = result.id;
@@ -245,12 +245,12 @@ export class MessageService {
     });
 
     try {
-      const result = await engine.sendLocationMessage(dto.chatId, {
+      const result = await this.withSendTimeout(sessionId, () => engine.sendLocationMessage(dto.chatId, {
         latitude: dto.latitude,
         longitude: dto.longitude,
         description: dto.description,
         address: dto.address,
-      });
+      }));
 
       // Update with actual WhatsApp message ID and status
       message.waMessageId = result.id;
@@ -283,10 +283,10 @@ export class MessageService {
     });
 
     try {
-      const result = await engine.sendContactMessage(dto.chatId, {
+      const result = await this.withSendTimeout(sessionId, () => engine.sendContactMessage(dto.chatId, {
         name: dto.contactName,
         number: dto.contactNumber,
-      });
+      }));
 
       // Update with actual WhatsApp message ID and status
       message.waMessageId = result.id;
@@ -316,7 +316,7 @@ export class MessageService {
     });
 
     try {
-      const result = await engine.sendStickerMessage(dto.chatId, media);
+      const result = await this.withSendTimeout(sessionId, () => engine.sendStickerMessage(dto.chatId, media));
 
       // Update with actual WhatsApp message ID and status
       message.waMessageId = result.id;
@@ -349,7 +349,7 @@ export class MessageService {
     });
 
     try {
-      const result = await engine.replyToMessage(dto.chatId, dto.quotedMessageId, dto.text);
+      const result = await this.withSendTimeout(sessionId, () => engine.replyToMessage(dto.chatId, dto.quotedMessageId, dto.text));
 
       // Update with actual WhatsApp message ID and status
       message.waMessageId = result.id;
@@ -382,7 +382,7 @@ export class MessageService {
     });
 
     try {
-      const result = await engine.forwardMessage(dto.fromChatId, dto.toChatId, dto.messageId);
+      const result = await this.withSendTimeout(sessionId, () => engine.forwardMessage(dto.fromChatId, dto.toChatId, dto.messageId));
 
       // Update with actual WhatsApp message ID and status
       message.waMessageId = result.id;
