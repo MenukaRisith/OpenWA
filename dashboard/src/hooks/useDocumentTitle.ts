@@ -2,12 +2,12 @@ import { useEffect } from 'react';
 
 /**
  * Custom hook to set document title dynamically.
- * Automatically appends the Aeon Whatsapp suffix.
+ * Automatically appends the Aeon WhatsAPP API suffix.
  */
 export function useDocumentTitle(title: string) {
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = `${title} | Aeon Whatsapp`;
+    document.title = `${title} | Aeon WhatsAPP API`;
 
     return () => {
       document.title = previousTitle;

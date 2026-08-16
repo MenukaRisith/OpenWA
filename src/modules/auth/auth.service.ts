@@ -18,6 +18,8 @@ import { createLogger } from '../../common/services/logger.service';
 
 const API_KEY_FILE = join(process.cwd(), 'data', '.api-key');
 const ADMIN_PASSWORD_FILE = join(process.cwd(), 'data', '.admin-password');
+const API_KEY_PREFIX = 'aeon_k1_';
+const USER_TOKEN_PREFIX = 'aeon_u1_';
 
 @Injectable()
 export class AuthService implements OnModuleInit {
@@ -35,13 +37,13 @@ export class AuthService implements OnModuleInit {
     const userCount = await this.userRepository.count();
     let displayKey: string;
     let isNewKey = false;
-    let displayAdminUsername = process.env.OPENWA_ADMIN_USERNAME || 'admin';
+    let displayAdminUsername = process.env.AEON_ADMIN_USERNAME || process.env.OPENWA_ADMIN_USERNAME || 'admin';
     let displayAdminPassword = '(configured)';
     let isNewAdmin = false;
 
     if (keyCount === 0) {
       displayKey =
-        process.env.NODE_ENV === 'production' ? `owa_k1_${randomBytes(32).toString('hex')}` : 'dev-admin-key';
+        process.env.NODE_ENV === 'production' ? `${API_KEY_PREFIX}${randomBytes(32).toString('hex')}` : 'dev-admin-key';
 
       await this.seedApiKey(displayKey, 'Default Admin Key', ApiKeyRole.ADMIN);
       isNewKey = true;
@@ -68,8 +70,9 @@ export class AuthService implements OnModuleInit {
       displayAdminUsername = configuredAdmin.username;
       displayAdminPassword = '(configured from environment)';
     } else if (userCount === 0) {
-      displayAdminUsername = process.env.OPENWA_ADMIN_USERNAME || 'admin';
+      displayAdminUsername = process.env.AEON_ADMIN_USERNAME || process.env.OPENWA_ADMIN_USERNAME || 'admin';
       displayAdminPassword =
+        process.env.AEON_ADMIN_PASSWORD ||
         process.env.OPENWA_ADMIN_PASSWORD ||
         (process.env.NODE_ENV === 'production' ? randomBytes(12).toString('base64url') : 'admin12345');
 
@@ -89,7 +92,7 @@ export class AuthService implements OnModuleInit {
     this.logger.log('');
     this.logger.log('--------------------------------------------------------------------------------');
     this.logger.log('');
-    this.logger.log('  Welcome to OpenWA - WhatsApp API Gateway');
+    this.logger.log('  Welcome to Aeon WhatsAPP API');
     this.logger.log('');
     this.logger.log(`  Dashboard: ${dashboardUrl}`);
     this.logger.log(`  API Docs:  ${apiBaseUrl}/api/docs`);
@@ -138,8 +141,8 @@ export class AuthService implements OnModuleInit {
   }
 
   private async ensureConfiguredAdminUser(): Promise<User | null> {
-    const configuredUsername = process.env.OPENWA_ADMIN_USERNAME;
-    const configuredPassword = process.env.OPENWA_ADMIN_PASSWORD;
+    const configuredUsername = process.env.AEON_ADMIN_USERNAME || process.env.OPENWA_ADMIN_USERNAME;
+    const configuredPassword = process.env.AEON_ADMIN_PASSWORD || process.env.OPENWA_ADMIN_PASSWORD;
 
     if (!configuredUsername || !configuredPassword) {
       return null;
@@ -166,7 +169,7 @@ export class AuthService implements OnModuleInit {
     ownerUserId?: string,
     tenantId?: string,
   ): Promise<{ apiKey: ApiKey; rawKey: string }> {
-    const rawKey = `owa_k1_${randomBytes(32).toString('hex')}`;
+    const rawKey = `${API_KEY_PREFIX}${randomBytes(32).toString('hex')}`;
     const keyHash = this.hashKey(rawKey);
     const keyPrefix = rawKey.substring(0, 12);
 
@@ -248,7 +251,7 @@ export class AuthService implements OnModuleInit {
       throw new UnauthorizedException('User is disabled');
     }
 
-    const token = `owa_u1_${randomBytes(32).toString('hex')}`;
+    const token = `${USER_TOKEN_PREFIX}${randomBytes(32).toString('hex')}`;
     user.sessionTokenHash = this.hashKey(token);
     user.lastLoginAt = new Date();
     await this.userRepository.save(user);
@@ -399,6 +402,7 @@ export class AuthService implements OnModuleInit {
   private normalizeUsername(username: string): string {
     return username.trim().toLowerCase();
   }
+
   normalizeTenantId(tenantId: string): string {
     return tenantId.trim().toLowerCase();
   }

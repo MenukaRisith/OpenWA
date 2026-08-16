@@ -32,7 +32,7 @@ interface LayoutProps {
 }
 
 const allNavItems = [
-  { to: '/', icon: LayoutDashboard, key: 'dashboard' as const, adminOnly: false },
+  { to: '/dashboard', icon: LayoutDashboard, key: 'dashboard' as const, adminOnly: false },
   { to: '/sessions', icon: Smartphone, key: 'sessions' as const, adminOnly: false },
   { to: '/webhooks', icon: Webhook, key: 'webhooks' as const, adminOnly: false },
   { to: '/api-keys', icon: Key, key: 'apiKeys' as const, adminOnly: false },
@@ -141,7 +141,7 @@ export function Layout({ onLogout, userRole }: LayoutProps) {
                 key={to}
                 to={to}
                 className={({ isActive }) => `nav-item ${isActive ? 'active' : ''}`}
-                end={to === '/'}
+                end={to === '/dashboard'}
                 onClick={handleNavClick}
                 title={isCollapsed ? label : undefined}
               >

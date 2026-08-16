@@ -1,4 +1,4 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { BadRequestException, Controller, Get, Query } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiQuery } from '@nestjs/swagger';
 import { AuditService, AuditQueryOptions } from './audit.service';
 import { AuditLog, AuditAction, AuditSeverity } from './entities/audit-log.entity';
@@ -26,6 +26,7 @@ export class AuditController {
   @ApiQuery({ name: 'apiKeyId', required: false })
   @ApiQuery({ name: 'limit', required: false, type: Number })
   @ApiQuery({ name: 'offset', required: false, type: Number })
+  @ApiQuery({ name: 'startDate', required: false, type: String, format: 'date-time' })
   @ApiResponse({
     status: 200,
     description: 'Paginated list of audit logs',
@@ -37,6 +38,7 @@ export class AuditController {
     @Query('apiKeyId') apiKeyId?: string,
     @Query('limit') limit?: string,
     @Query('offset') offset?: string,
+    @Query('startDate') startDate?: string,
     @CurrentUser() user?: User,
   ): Promise<{ data: AuditLog[]; total: number }> {
     const options: AuditQueryOptions = {};
@@ -46,6 +48,12 @@ export class AuditController {
     if (apiKeyId) options.apiKeyId = apiKeyId;
     if (limit) options.limit = parseInt(limit, 10);
     if (offset) options.offset = parseInt(offset, 10);
+    if (startDate) {
+      const parsedStartDate = new Date(startDate);
+      if (Number.isNaN(parsedStartDate.getTime())) throw new BadRequestException('Invalid startDate');
+      options.startDate = parsedStartDate;
+      options.endDate = new Date();
+    }
     if (user && user.role !== ApiKeyRole.ADMIN) {
       const tenantId = user.tenantId || user.id;
       const sessions = await this.sessionRepository.find({

@@ -1,48 +1,35 @@
-# OpenWA SDKs
+# Aeon WhatsAPP API SDK Notes
 
-Official client libraries for the OpenWA WhatsApp API Gateway.
+This folder contains internal client-library scaffolds for Aeon WhatsAPP API. Hosted platform integrations can call the REST API directly with `X-API-Key`; generated SDK packages may be supplied separately for approved customer or operator environments.
 
-> **Note:** These SDKs are scaffolds and will be auto-generated from the OpenAPI spec in the future. They provide a working starting point for community contributions.
-
-## JavaScript / TypeScript
-
-```bash
-cd sdk/javascript
-npm install
-npm run build
-```
+## JavaScript Example
 
 ```typescript
-import { OpenWAClient } from '@openwa/sdk';
-
-const client = new OpenWAClient({
-  baseUrl: 'http://localhost:2785',
-  apiKey: 'your-api-key',
+const response = await fetch('https://your-aeon-api.example.com/api/sessions', {
+  method: 'GET',
+  headers: {
+    'X-API-Key': process.env.AEON_API_KEY!,
+  },
 });
 
-const result = await client.messages.sendText('session-1', {
-  chatId: '628123456789@c.us',
-  text: 'Hello from OpenWA SDK!',
-});
+const sessions = await response.json();
 ```
 
-## Python
-
-```bash
-cd sdk/python
-pip install -e .
-```
+## Python Example
 
 ```python
-from openwa import OpenWAClient
+import os
+import requests
 
-client = OpenWAClient(
-    base_url="http://localhost:2785",
-    api_key="your-api-key",
+response = requests.get(
+    "https://your-aeon-api.example.com/api/sessions",
+    headers={"X-API-Key": os.environ["AEON_API_KEY"]},
+    timeout=30,
 )
 
-result = client.messages.send_text("session-1", {
-    "chatId": "628123456789@c.us",
-    "text": "Hello from OpenWA Python SDK!",
-})
+sessions = response.json()
 ```
+
+## Documentation
+
+Use the consolidated product documentation at [../docs/README.md](../docs/README.md).

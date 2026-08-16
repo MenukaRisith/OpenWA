@@ -143,7 +143,7 @@ describe('WebhookService', () => {
 
       await service.findAll();
 
-      expect(repository.find).toHaveBeenCalledWith({ order: { createdAt: 'DESC' } });
+      expect(repository.find).toHaveBeenCalledWith({ where: {}, order: { createdAt: 'DESC' } });
     });
   });
 
@@ -323,7 +323,7 @@ describe('WebhookService', () => {
       await service.dispatch('sess-1', 'message.received', {});
 
       // Verify signature format
-      expect(capturedHeaders['X-OpenWA-Signature']).toMatch(/^sha256=[a-f0-9]{64}$/);
+      expect(capturedHeaders['X-Aeon-Signature']).toMatch(/^sha256=[a-f0-9]{64}$/);
 
       // Verify signature correctness
       const body = JSON.stringify({
@@ -335,7 +335,7 @@ describe('WebhookService', () => {
         deliveryId: 'd',
       });
       const expected = `sha256=${crypto.createHmac('sha256', 'test-secret-123').update(body).digest('hex')}`;
-      expect(capturedHeaders['X-OpenWA-Signature']).toBe(expected);
+      expect(capturedHeaders['X-Aeon-Signature']).toBe(expected);
 
       mockFetch.mockReset();
     });

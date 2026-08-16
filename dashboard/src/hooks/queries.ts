@@ -3,6 +3,7 @@ import {
   sessionApi,
   webhookApi,
   apiKeyApi,
+  statsApi,
   userApi,
   auditApi,
   infraApi,
@@ -15,6 +16,8 @@ import {
 export const queryKeys = {
   sessions: ['sessions'] as const,
   sessionStats: ['sessions', 'stats'] as const,
+  overviewStats: ['stats', 'overview'] as const,
+  apiCalls: ['audit', 'api-calls'] as const,
   sessionGroups: (sessionId: string) => ['sessions', sessionId, 'groups'] as const,
   webhooks: ['webhooks'] as const,
   apiKeys: ['apiKeys'] as const,
@@ -41,6 +44,22 @@ export function useSessionStatsQuery() {
   return useQuery({
     queryKey: queryKeys.sessionStats,
     queryFn: sessionApi.getStats,
+    staleTime: 30_000,
+  });
+}
+
+export function useOverviewStatsQuery() {
+  return useQuery({
+    queryKey: queryKeys.overviewStats,
+    queryFn: statsApi.getOverview,
+    staleTime: 30_000,
+  });
+}
+
+export function useApiCallsQuery() {
+  return useQuery({
+    queryKey: queryKeys.apiCalls,
+    queryFn: () => auditApi.list({ action: 'api_key_used', startDate: new Date(Date.now() - 86_400_000).toISOString(), limit: 1 }),
     staleTime: 30_000,
   });
 }

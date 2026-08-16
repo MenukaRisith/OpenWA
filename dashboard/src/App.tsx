@@ -9,6 +9,7 @@ import { ErrorBoundary } from './components/ErrorBoundary';
 import './App.css';
 
 const Login = lazy(() => import('./pages/Login').then(m => ({ default: m.Login })));
+const PublicDocs = lazy(() => import('./pages/PublicDocs').then(m => ({ default: m.PublicDocs })));
 const Dashboard = lazy(() => import('./pages/Dashboard').then(m => ({ default: m.Dashboard })));
 const Sessions = lazy(() => import('./pages/Sessions').then(m => ({ default: m.Sessions })));
 const Webhooks = lazy(() => import('./pages/Webhooks').then(m => ({ default: m.Webhooks })));
@@ -78,28 +79,34 @@ function AppContent() {
     </div>
   );
 
-  if (!isAuthenticated) {
-    return <Suspense fallback={loadingFallback}><Login onLogin={handleLogin} /></Suspense>;
-  }
-
   return (
     <ToastProvider>
       <BrowserRouter>
         <Suspense fallback={loadingFallback}>
-        <Routes>
-          <Route path="/" element={<Layout onLogout={handleLogout} userRole={role} />}>
-            <Route index element={<Dashboard />} />
-            <Route path="sessions" element={<Sessions />} />
-            <Route path="webhooks" element={<Webhooks />} />
+          <Routes>
+            <Route path="/" element={<Navigate to="/docs" replace />} />
+            <Route path="/docs" element={<PublicDocs isAuthenticated={isAuthenticated} />} />
+            <Route
+              path="/login"
+              element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login onLogin={handleLogin} />}
+            />
+            <Route
+              element={
+                isAuthenticated ? <Layout onLogout={handleLogout} userRole={role} /> : <Navigate to="/login" replace />
+              }
+            >
+              <Route path="dashboard" element={<Dashboard />} />
+              <Route path="sessions" element={<Sessions />} />
+              <Route path="webhooks" element={<Webhooks />} />
             <Route path="api-keys" element={<ApiKeys />} />
-            {role === 'admin' && <Route path="users" element={<Users />} />}
-            <Route path="logs" element={<Logs />} />
-            <Route path="message-tester" element={<MessageTester />} />
-            <Route path="infrastructure" element={<Infrastructure />} />
-            {role === 'admin' && <Route path="plugins" element={<Plugins />} />}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
+              {role === 'admin' && <Route path="users" element={<Users />} />}
+              <Route path="logs" element={<Logs />} />
+              <Route path="message-tester" element={<MessageTester />} />
+              <Route path="infrastructure" element={<Infrastructure />} />
+              {role === 'admin' && <Route path="plugins" element={<Plugins />} />}
+            </Route>
+            <Route path="*" element={<Navigate to={isAuthenticated ? '/dashboard' : '/docs'} replace />} />
+          </Routes>
         </Suspense>
       </BrowserRouter>
     </ToastProvider>

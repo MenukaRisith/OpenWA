@@ -72,14 +72,14 @@ describe('AuthService', () => {
   // ── createApiKey ──────────────────────────────────────────────────
 
   describe('createApiKey', () => {
-    it('should generate a key with owa_k1_ prefix and save to DB', async () => {
+    it('should generate a key with aeon_k1_ prefix and save to DB', async () => {
       const mockSaved = createMockApiKey({ name: 'My Key' });
       (repository.create as jest.Mock).mockReturnValue(mockSaved);
       (repository.save as jest.Mock).mockResolvedValue(mockSaved);
 
       const result = await service.createApiKey({ name: 'My Key' });
 
-      expect(result.rawKey).toMatch(/^owa_k1_[a-f0-9]{64}$/);
+      expect(result.rawKey).toMatch(/^aeon_k1_[a-f0-9]{64}$/);
       expect(result.apiKey).toBe(mockSaved);
       expect(repository.create).toHaveBeenCalledWith(
         expect.objectContaining({

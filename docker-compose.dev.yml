@@ -1,20 +1,21 @@
-# OpenWA - Docker Compose for Development
+# Aeon WhatsAPP API - Docker Compose for Development
 # Quick Start: docker compose -f docker-compose.dev.yml up -d
 
 services:
   # API Backend
-  openwa:
+  aeon-api:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: openwa-api
+    container_name: aeon-api
+    shm_size: '1gb'
     ports:
       - '127.0.0.1:2785:2785'
     environment:
       - NODE_ENV=development
       - PORT=2785
       - DATABASE_TYPE=sqlite
-      - DATABASE_NAME=/app/data/openwa.sqlite
+      - DATABASE_NAME=/app/data/aeon.sqlite
       - DATABASE_SYNCHRONIZE=true
       - ENGINE_TYPE=whatsapp-web.js
       - SESSION_DATA_PATH=/app/data/sessions
@@ -46,14 +47,14 @@ services:
     build:
       context: ./dashboard
       dockerfile: Dockerfile
-    container_name: openwa-dashboard
+    container_name: aeon-dashboard
     ports:
       - '127.0.0.1:2886:80'
     depends_on:
-      openwa:
+      aeon-api:
         condition: service_healthy
     restart: unless-stopped
 
 networks:
   default:
-    name: openwa-network
+    name: aeon-network

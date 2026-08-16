@@ -9,6 +9,7 @@ import {
   Min,
   Max,
   ArrayMaxSize,
+  IsObject,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 
@@ -19,15 +20,23 @@ class BulkMessageContentDto {
   text?: string;
 
   @ApiPropertyOptional({ description: 'Image URL or base64' })
+  @IsOptional()
+  @IsObject()
   image?: { url?: string; base64?: string; mimetype?: string };
 
   @ApiPropertyOptional({ description: 'Video URL or base64' })
+  @IsOptional()
+  @IsObject()
   video?: { url?: string; base64?: string; mimetype?: string };
 
   @ApiPropertyOptional({ description: 'Audio URL or base64' })
+  @IsOptional()
+  @IsObject()
   audio?: { url?: string; base64?: string; mimetype?: string };
 
   @ApiPropertyOptional({ description: 'Document URL or base64' })
+  @IsOptional()
+  @IsObject()
   document?: { url?: string; base64?: string; mimetype?: string; filename?: string };
 
   @ApiPropertyOptional({ description: 'Caption for media messages' })
@@ -52,6 +61,7 @@ class BulkMessageItemDto {
 
   @ApiPropertyOptional({ description: 'Variables for template substitution' })
   @IsOptional()
+  @IsObject()
   variables?: Record<string, string>;
 }
 

@@ -141,7 +141,7 @@ describe('SessionService', () => {
       const result = await service.findAll();
 
       expect(result).toHaveLength(2);
-      expect(repository.find).toHaveBeenCalledWith({ order: { createdAt: 'DESC' } });
+      expect(repository.find).toHaveBeenCalledWith({ where: {}, order: { createdAt: 'DESC' } });
     });
   });
 
@@ -306,6 +306,20 @@ describe('SessionService', () => {
       mockEngine.getQRCode.mockReturnValue(null);
 
       await expect(service.getQRCode('sess-uuid-1')).rejects.toThrow('already authenticated');
+    });
+
+    it('should return an empty QR while engine is still generating it', async () => {
+      const session = createMockSession({ status: SessionStatus.INITIALIZING });
+      (repository.findOne as jest.Mock).mockResolvedValue(session);
+      (repository.update as jest.Mock).mockResolvedValue({ affected: 1 });
+
+      await service.start('sess-uuid-1');
+      mockEngine.getQRCode.mockReturnValue(null);
+
+      await expect(service.getQRCode('sess-uuid-1')).resolves.toEqual({
+        qrCode: '',
+        status: SessionStatus.INITIALIZING,
+      });
     });
   });
 

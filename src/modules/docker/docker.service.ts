@@ -92,7 +92,7 @@ export class DockerService implements OnModuleInit {
   }
 
   /**
-   * List all OpenWA-related containers
+   * List all Aeon-related containers
    */
   async listContainers(): Promise<ContainerInfo[]> {
     if (!this.docker || !this.isAvailable) {
@@ -103,9 +103,13 @@ export class DockerService implements OnModuleInit {
       const containers = await this.docker.listContainers({ all: true });
       return containers
         .filter(c => {
-          // Filter by OpenWA labels or name prefix
+          // Filter by Aeon labels or name prefix. Keep the legacy checks so existing deployments remain visible.
           const labels = c.Labels || {};
-          return labels['com.openwa.service'] || c.Names?.some(n => n.startsWith('/openwa-'));
+          return (
+            labels['com.aeon.service'] ||
+            labels['com.openwa.service'] ||
+            c.Names?.some(n => n.startsWith('/aeon-') || n.startsWith('/openwa-'))
+          );
         })
         .map(c => ({
           id: c.Id.substring(0, 12),
@@ -132,7 +136,7 @@ export class DockerService implements OnModuleInit {
       const containers = await this.docker.listContainers({
         all: true,
         filters: {
-          label: [`com.openwa.service=${service}`],
+          label: [`com.aeon.service=${service}`],
         },
       });
 
@@ -140,9 +144,22 @@ export class DockerService implements OnModuleInit {
         return this.docker.getContainer(containers[0].Id);
       }
 
+      const legacyContainers = await this.docker.listContainers({
+        all: true,
+        filters: {
+          label: [`com.openwa.service=${service}`],
+        },
+      });
+
+      if (legacyContainers.length > 0) {
+        return this.docker.getContainer(legacyContainers[0].Id);
+      }
+
       // Fallback: try by name
       const allContainers = await this.docker.listContainers({ all: true });
-      const match = allContainers.find(c => c.Names?.some(n => n.includes(`openwa-${service}`) || n.includes(service)));
+      const match = allContainers.find(c =>
+        c.Names?.some(n => n.includes(`aeon-${service}`) || n.includes(`openwa-${service}`) || n.includes(service)),
+      );
 
       if (match) {
         return this.docker.getContainer(match.Id);
@@ -173,10 +190,10 @@ export class DockerService implements OnModuleInit {
     const specs: Record<string, ReturnType<typeof this.getContainerSpec>> = {
       redis: {
         image: 'redis:7-alpine',
-        name: 'openwa-redis',
+        name: 'aeon-redis',
         alias: 'redis', // DNS alias for resolution
         cmd: ['redis-server', '--appendonly', 'yes'],
-        volumes: [{ name: 'openwa_redis-data', path: '/data' }],
+        volumes: [{ name: 'aeon_redis-data', path: '/data' }],
         healthcheck: {
           test: ['CMD', 'redis-cli', 'ping'],
           interval: 5000000000, // 5s in nanoseconds
@@ -184,38 +201,38 @@ export class DockerService implements OnModuleInit {
           retries: 5,
         },
         labels: {
-          'com.openwa.service': 'cache',
-          'com.openwa.builtin': 'true',
+          'com.aeon.service': 'cache',
+          'com.aeon.builtin': 'true',
         },
       },
       postgres: {
         image: 'postgres:16-alpine',
-        name: 'openwa-postgres',
+        name: 'aeon-postgres',
         alias: 'postgres',
         // Use hardcoded defaults for built-in container (don't inherit SQLite paths)
-        env: ['POSTGRES_USER=openwa', 'POSTGRES_PASSWORD=openwa', 'POSTGRES_DB=openwa'],
-        volumes: [{ name: 'openwa_postgres-data', path: '/var/lib/postgresql/data' }],
+        env: ['POSTGRES_USER=aeon', 'POSTGRES_PASSWORD=aeon', 'POSTGRES_DB=aeon_whatsapp'],
+        volumes: [{ name: 'aeon_postgres-data', path: '/var/lib/postgresql/data' }],
         healthcheck: {
-          test: ['CMD-SHELL', 'pg_isready -U openwa'],
+          test: ['CMD-SHELL', 'pg_isready -U aeon'],
           interval: 5000000000,
           timeout: 3000000000,
           retries: 5,
         },
         labels: {
-          'com.openwa.service': 'database',
-          'com.openwa.builtin': 'true',
+          'com.aeon.service': 'database',
+          'com.aeon.builtin': 'true',
         },
       },
       minio: {
         image: 'minio/minio',
-        name: 'openwa-minio',
+        name: 'aeon-minio',
         alias: 'minio',
         cmd: ['server', '/data', '--console-address', ':9001'],
         env: [
           `MINIO_ROOT_USER=${process.env.S3_ACCESS_KEY || 'minioadmin'}`,
           `MINIO_ROOT_PASSWORD=${process.env.S3_SECRET_KEY || 'minioadmin'}`,
         ],
-        volumes: [{ name: 'openwa_minio-data', path: '/data' }],
+        volumes: [{ name: 'aeon_minio-data', path: '/data' }],
         ports: [
           { container: 9000, host: 9000 },
           { container: 9001, host: 9001 },
@@ -227,8 +244,8 @@ export class DockerService implements OnModuleInit {
           retries: 3,
         },
         labels: {
-          'com.openwa.service': 'storage',
-          'com.openwa.builtin': 'true',
+          'com.aeon.service': 'storage',
+          'com.aeon.builtin': 'true',
         },
       },
     };
@@ -299,7 +316,7 @@ export class DockerService implements OnModuleInit {
         Env: spec.env,
         Labels: spec.labels,
         HostConfig: {
-          NetworkMode: 'openwa-network',
+          NetworkMode: 'aeon-network',
           RestartPolicy: { Name: 'unless-stopped' },
           Binds: spec.volumes?.map(v => `${v.name}:${v.path}`),
           PortBindings: spec.ports?.reduce(
@@ -320,7 +337,7 @@ export class DockerService implements OnModuleInit {
           : undefined,
         NetworkingConfig: {
           EndpointsConfig: {
-            'openwa-network': {
+            'aeon-network': {
               Aliases: [spec.alias, profile], // Add DNS aliases for network resolution
             },
           },

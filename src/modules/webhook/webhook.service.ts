@@ -116,7 +116,7 @@ export class WebhookService {
       idempotencyKey: generateIdempotencyKey('test', { webhookId: webhook.id }),
       deliveryId: generateDeliveryId(),
       data: {
-        message: 'This is a test webhook from OpenWA',
+        message: 'This is a test webhook from Aeon WhatsAPP API',
         webhookId: webhook.id,
         url: webhook.url,
       },
@@ -125,16 +125,16 @@ export class WebhookService {
     const body = JSON.stringify(testPayload);
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'User-Agent': 'OpenWA-Webhook/1.0.0',
-      'X-OpenWA-Event': 'test',
-      'X-OpenWA-Idempotency-Key': testPayload.idempotencyKey,
-      'X-OpenWA-Delivery-Id': testPayload.deliveryId,
-      'X-OpenWA-Retry-Count': '0',
+      'User-Agent': 'Aeon-Webhook/1.0.0',
+      'X-Aeon-Event': 'test',
+      'X-Aeon-Idempotency-Key': testPayload.idempotencyKey,
+      'X-Aeon-Delivery-Id': testPayload.deliveryId,
+      'X-Aeon-Retry-Count': '0',
       ...webhook.headers,
     };
 
     if (webhook.secret) {
-      headers['X-OpenWA-Signature'] = this.generateSignature(body, webhook.secret);
+      headers['X-Aeon-Signature'] = this.generateSignature(body, webhook.secret);
     }
 
     try {
@@ -202,11 +202,11 @@ export class WebhookService {
       // Build headers
       const headers: Record<string, string> = {
         'Content-Type': 'application/json',
-        'User-Agent': 'OpenWA-Webhook/1.0.0',
-        'X-OpenWA-Event': event,
-        'X-OpenWA-Idempotency-Key': idempotencyKey,
-        'X-OpenWA-Delivery-Id': deliveryId,
-        'X-OpenWA-Retry-Count': '0',
+        'User-Agent': 'Aeon-Webhook/1.0.0',
+        'X-Aeon-Event': event,
+        'X-Aeon-Idempotency-Key': idempotencyKey,
+        'X-Aeon-Delivery-Id': deliveryId,
+        'X-Aeon-Retry-Count': '0',
         ...webhook.headers,
       };
 
@@ -215,7 +215,7 @@ export class WebhookService {
         const signature = webhook.secret ? this.generateSignature(JSON.stringify(finalPayload), webhook.secret) : '';
 
         if (webhook.secret) {
-          headers['X-OpenWA-Signature'] = signature;
+          headers['X-Aeon-Signature'] = signature;
         }
 
         const jobData: WebhookJobData = {
@@ -312,11 +312,11 @@ export class WebhookService {
     const body = JSON.stringify(payload);
 
     // Update retry count header
-    headers['X-OpenWA-Retry-Count'] = String(attempt - 1);
+    headers['X-Aeon-Retry-Count'] = String(attempt - 1);
 
     // Add signature if secret is configured and not already present
-    if (webhook.secret && !headers['X-OpenWA-Signature']) {
-      headers['X-OpenWA-Signature'] = this.generateSignature(body, webhook.secret);
+    if (webhook.secret && !headers['X-Aeon-Signature']) {
+      headers['X-Aeon-Signature'] = this.generateSignature(body, webhook.secret);
     }
 
     try {

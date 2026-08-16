@@ -27,6 +27,10 @@ export interface SessionStats {
   memoryUsage: { heapUsed: number; heapTotal: number; rss: number };
 }
 
+export interface OverviewStats {
+  messages: { today: { sent: number; received: number } };
+}
+
 export interface Webhook {
   id: string;
   sessionId: string;
@@ -235,6 +239,10 @@ export const sessionApi = {
   getGroups: (id: string) => request<{ id: string; name: string }[]>(`/sessions/${id}/groups`),
 };
 
+export const statsApi = {
+  getOverview: () => request<OverviewStats>('/stats/overview'),
+};
+
 // =============================================================================
 // Webhook API
 // =============================================================================
@@ -293,12 +301,13 @@ export const apiKeyApi = {
 // =============================================================================
 
 export const auditApi = {
-  list: (params?: { action?: string; severity?: string; limit?: number; offset?: number }) => {
+  list: (params?: { action?: string; severity?: string; limit?: number; offset?: number; startDate?: string }) => {
     const query = new URLSearchParams();
     if (params?.action) query.set('action', params.action);
     if (params?.severity) query.set('severity', params.severity);
     if (params?.limit) query.set('limit', String(params.limit));
     if (params?.offset) query.set('offset', String(params.offset));
+    if (params?.startDate) query.set('startDate', params.startDate);
     const queryStr = query.toString();
     return request<{ data: AuditLog[]; total: number }>(`/audit${queryStr ? `?${queryStr}` : ''}`);
   },

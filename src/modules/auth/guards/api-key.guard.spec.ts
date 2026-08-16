@@ -10,7 +10,7 @@ function createMockApiKey(overrides: Partial<ApiKey> = {}): ApiKey {
     id: 'uuid-1',
     name: 'Test Key',
     keyHash: 'hash',
-    keyPrefix: 'owa_k1_xxxx',
+    keyPrefix: 'aeon_k1_xxxx',
     role: ApiKeyRole.OPERATOR,
     allowedIps: null,
     allowedSessions: null,
@@ -32,6 +32,9 @@ function createMockContext(
     headers,
     params,
     ip: '127.0.0.1',
+    get: jest.fn(),
+    method: 'GET',
+    url: '/api/test',
     socket: { remoteAddress: '127.0.0.1' },
   };
 
@@ -64,6 +67,7 @@ describe('ApiKeyGuard', () => {
   let guard: ApiKeyGuard;
   let authService: jest.Mocked<Partial<AuthService>>;
   let reflector: jest.Mocked<Reflector>;
+  const auditService = { logInfo: jest.fn() };
 
   beforeEach(() => {
     authService = {
@@ -76,7 +80,8 @@ describe('ApiKeyGuard', () => {
       getAllAndOverride: jest.fn(),
     } as unknown as jest.Mocked<Reflector>;
 
-    guard = new ApiKeyGuard(authService as AuthService, reflector);
+    auditService.logInfo.mockReset();
+    guard = new ApiKeyGuard(authService as AuthService, reflector, auditService as never);
   });
 
   it('should allow access to @Public() routes without API key', async () => {
@@ -111,6 +116,7 @@ describe('ApiKeyGuard', () => {
 
     expect(result).toBe(true);
     expect(authService.validateApiKey).toHaveBeenCalledWith('my-key', '127.0.0.1', undefined);
+    expect(auditService.logInfo).toHaveBeenCalled();
   });
 
   it('should accept Authorization Bearer header', async () => {
@@ -133,11 +139,11 @@ describe('ApiKeyGuard', () => {
     (authService.validateUserToken as jest.Mock).mockResolvedValue(user);
     (authService.hasPermission as jest.Mock).mockReturnValue(true);
 
-    const context = createMockContext({ authorization: 'Bearer owa_u1_dashboard-token' });
+    const context = createMockContext({ authorization: 'Bearer aeon_u1_dashboard-token' });
     const result = await guard.canActivate(context);
 
     expect(result).toBe(true);
-    expect(authService.validateUserToken).toHaveBeenCalledWith('owa_u1_dashboard-token');
+    expect(authService.validateUserToken).toHaveBeenCalledWith('aeon_u1_dashboard-token');
     expect(authService.validateApiKey).not.toHaveBeenCalled();
   });
 

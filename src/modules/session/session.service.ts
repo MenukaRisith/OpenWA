@@ -480,7 +480,10 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
       if (session.status === SessionStatus.READY) {
         throw new BadRequestException('Session is already authenticated, no QR code needed');
       }
-      throw new BadRequestException('QR code is not ready yet. Please wait...');
+      return {
+        qrCode: '',
+        status: session.status,
+      };
     }
 
     return {
@@ -514,6 +517,7 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
       this.recoveringSessions.delete(id);
     }
   }
+
   async getGroups(id: string, tenantId?: string): Promise<{ id: string; name: string }[]> {
     await this.findOne(id, tenantId); // Verify session exists and is accessible
     const engine = this.engines.get(id);

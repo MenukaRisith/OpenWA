@@ -100,7 +100,7 @@ export function Infrastructure() {
     port: '5432',
     username: 'postgres',
     password: '',
-    database: 'openwa',
+    database: 'aeon_whatsapp',
     poolSize: 10,
     sslEnabled: false,
   });

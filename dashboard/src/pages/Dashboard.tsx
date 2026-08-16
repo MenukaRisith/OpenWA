@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { MessageSquare, Send, Webhook, Activity, ArrowUpRight, ArrowDownRight, Loader2 } from 'lucide-react';
 import { useDocumentTitle } from '../hooks/useDocumentTitle';
-import { useSessionsQuery, useSessionStatsQuery, useWebhooksQuery, useStopSessionMutation } from '../hooks/queries';
+import { useApiCallsQuery, useOverviewStatsQuery, useSessionsQuery, useSessionStatsQuery, useWebhooksQuery, useStopSessionMutation } from '../hooks/queries';
 import { PageHeader } from '../components/PageHeader';
 import './Dashboard.css';
 
@@ -12,6 +12,8 @@ export function Dashboard() {
   const navigate = useNavigate();
   const { data: sessions = [], isLoading: loadingSessions, error: sessionsError } = useSessionsQuery();
   const { data: stats } = useSessionStatsQuery();
+  const { data: overview } = useOverviewStatsQuery();
+  const { data: apiCalls } = useApiCallsQuery();
   const { data: webhooks = [] } = useWebhooksQuery();
   const stopMutation = useStopSessionMutation();
   const loading = loadingSessions;
@@ -38,9 +40,9 @@ export function Dashboard() {
       trend: `+${stats?.ready ?? 0}`,
       trendUp: true,
     },
-    { label: t('dashboard.stats.messagesToday'), value: '—', icon: Send, trend: '0', trendUp: null },
+    { label: t('dashboard.stats.messagesToday'), value: (overview?.messages.today.sent ?? 0) + (overview?.messages.today.received ?? 0), icon: Send, trend: '0', trendUp: null },
     { label: t('dashboard.stats.webhooksConfigured'), value: webhookCount, icon: Webhook, trend: '0', trendUp: null },
-    { label: t('dashboard.stats.apiCalls'), value: '—', icon: Activity, trend: '0', trendUp: null },
+    { label: t('dashboard.stats.apiCalls'), value: apiCalls?.total ?? 0, icon: Activity, trend: '0', trendUp: null },
   ];
 
   const formatLastActive = (date?: string) => {

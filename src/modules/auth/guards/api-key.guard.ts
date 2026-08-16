@@ -2,14 +2,17 @@ import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from
 import { Reflector } from '@nestjs/core';
 import { Request } from 'express';
 import { AuthService } from '../auth.service';
-import { ApiKeyRole } from '../entities/api-key.entity';
+import { ApiKey, ApiKeyRole } from '../entities/api-key.entity';
 import { REQUIRED_ROLE_KEY, PUBLIC_KEY } from '../decorators/auth.decorators';
+import { AuditService } from '../../audit/audit.service';
+import { AuditAction } from '../../audit/entities/audit-log.entity';
 
 @Injectable()
 export class ApiKeyGuard implements CanActivate {
   constructor(
     private readonly authService: AuthService,
     private readonly reflector: Reflector,
+    private readonly auditService: AuditService,
   ) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
@@ -48,6 +51,14 @@ export class ApiKeyGuard implements CanActivate {
       (request as Request & { user: typeof principal }).user = principal;
     } else {
       (request as Request & { apiKey: typeof principal }).apiKey = principal;
+      await this.auditService.logInfo(AuditAction.API_KEY_USED, {
+        apiKey: principal as ApiKey,
+        sessionId,
+        ipAddress: clientIp,
+        userAgent: request.get('user-agent'),
+        method: request.method,
+        path: request.originalUrl || request.url,
+      });
     }
 
     return true;
@@ -60,7 +71,7 @@ export class ApiKeyGuard implements CanActivate {
     const authHeader = request.headers['authorization'];
     if (authHeader?.startsWith('Bearer ')) {
       const token = authHeader.substring(7);
-      return { type: token.startsWith('owa_u1_') ? 'user' : 'apiKey', value: token };
+      return { type: token.startsWith('aeon_u1_') || token.startsWith('owa_u1_') ? 'user' : 'apiKey', value: token };
     }
 
     return undefined;

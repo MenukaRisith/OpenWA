@@ -1,6 +1,6 @@
 {
   "common": {
-    "appName": "Aeon Whatsapp",
+    "appName": "Aeon WhatsAPP API",
     "appSubtitle": "Operations API",
     "loading": "טוען...",
     "save": "שמירה",
@@ -70,7 +70,7 @@
   },
   "login": {
     "eyebrow": "Commercial messaging control",
-    "title": "Aeon Whatsapp control plane",
+    "title": "Aeon WhatsAPP API control plane",
     "subtitle": "Authenticate to manage WhatsApp sessions, webhook delivery, message testing, infrastructure status, and access keys from one operations-first workspace.",
     "proofSessions": "Session uptime",
     "proofWebhooks": "Webhook routing",
@@ -84,7 +84,7 @@
     "connectionError": "לא ניתן להתחבר לשרת. יש לנסות שוב.",
     "help": "צריך עזרה?",
     "viewDocs": "לצפייה בתיעוד",
-    "footer": "Aeon Whatsapp dashboard",
+    "footer": "Aeon WhatsAPP API dashboard",
     "version": "v{{version}} · {{date}}"
   },
   "dashboard": {
@@ -402,7 +402,7 @@
       "postgres": "PostgreSQL",
       "postgresDesc": "מסד נתונים מוכן לייצור",
       "useBuiltIn": "שימוש בקונטיינר PostgreSQL מובנה",
-      "builtInDesc": "Aeon Whatsapp ינהל עבורך קונטיינר PostgreSQL",
+      "builtInDesc": "Aeon WhatsAPP API ינהל עבורך קונטיינר PostgreSQL",
       "dbName": "שם מסד הנתונים",
       "poolSize": "גודל Pool",
       "ssl": "חיבור SSL",
@@ -416,7 +416,7 @@
       "enable": "הפעלת Redis",
       "enableDesc": "נדרש למטמון, אחסון Sessions ותורי BullMQ",
       "useBuiltIn": "שימוש בקונטיינר Redis מובנה",
-      "builtInDesc": "Aeon Whatsapp ינהל עבורך קונטיינר Redis",
+      "builtInDesc": "Aeon WhatsAPP API ינהל עבורך קונטיינר Redis",
       "queueTitle": "הפעלת מערכת התורים BullMQ",
       "queueDesc": "שימוש בתורי הודעות לאספקה אמינה של הודעות ו-Webhooks",
       "statsTitle": "סטטיסטיקות תור",
@@ -438,7 +438,7 @@
       "s3": "Amazon S3",
       "s3Desc": "אחסון ענן (תואם S3)",
       "useBuiltIn": "שימוש בקונטיינר MinIO מובנה",
-      "builtInDesc": "Aeon Whatsapp ינהל עבורך קונטיינר MinIO (תואם S3)",
+      "builtInDesc": "Aeon WhatsAPP API ינהל עבורך קונטיינר MinIO (תואם S3)",
       "storagePath": "נתיב אחסון",
       "bucket": "שם Bucket",
       "region": "אזור (Region)",
@@ -491,7 +491,7 @@
     "configure": "הגדרה",
     "empty": {
       "title": "לא נמצאו תוספים",
-      "description": "ניתן להתקין תוספים כדי להרחיב את היכולות של Aeon Whatsapp"
+      "description": "ניתן להתקין תוספים כדי להרחיב את היכולות של Aeon WhatsAPP API"
     },
     "config": {
       "title": "הגדרת {{name}}",
