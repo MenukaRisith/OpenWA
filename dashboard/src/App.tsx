@@ -84,7 +84,7 @@ function AppContent() {
       <BrowserRouter>
         <Suspense fallback={loadingFallback}>
           <Routes>
-            <Route path="/" element={<Navigate to="/docs" replace />} />
+            <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="/docs" element={<PublicDocs isAuthenticated={isAuthenticated} />} />
             <Route
               path="/login"
