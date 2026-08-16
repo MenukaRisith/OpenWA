@@ -1,4 +1,4 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { Injectable, BadRequestException, ServiceUnavailableException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { SessionService } from '../session/session.service';
@@ -47,7 +47,7 @@ export class MessageService {
     });
 
     try {
-      const result = await engine.sendTextMessage(finalDto.chatId, finalDto.text);
+      const result = await this.withSendTimeout(sessionId, () => engine.sendTextMessage(finalDto.chatId, finalDto.text));
 
       // Update with actual WhatsApp message ID and status
       message.waMessageId = result.id;
@@ -472,6 +472,25 @@ export class MessageService {
       throw new BadRequestException(`Session '${sessionId}' is not active. Start the session first.`);
     }
     return engine;
+  }
+
+  private async withSendTimeout<T>(sessionId: string, send: () => Promise<T>): Promise<T> {
+    let timer: NodeJS.Timeout | undefined;
+    try {
+      return await Promise.race([
+        send(),
+        new Promise<T>((_resolve, reject) => {
+          timer = setTimeout(() => reject(new ServiceUnavailableException('WhatsApp send timed out. The session is reconnecting; retry this message shortly.')), 45_000);
+        }),
+      ]);
+    } catch (error) {
+      if (error instanceof ServiceUnavailableException) {
+        void this.sessionService.recoverAfterSendTimeout(sessionId);
+      }
+      throw error;
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
   }
 
   private buildMediaInput(dto: SendMediaMessageDto): MediaInput {

@@ -34,6 +34,9 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
   // Reconnection state per session
   private reconnectStates: Map<string, ReconnectState> = new Map();
 
+  // A send timeout can leave whatsapp-web.js alive but unable to resolve requests.
+  private recoveringSessions = new Set<string>();
+
   constructor(
     @InjectRepository(Session, 'data')
     private readonly sessionRepository: Repository<Session>,
@@ -490,6 +493,27 @@ export class SessionService implements OnModuleDestroy, OnModuleInit {
     return this.engines.get(id);
   }
 
+  async recoverAfterSendTimeout(id: string): Promise<void> {
+    if (this.recoveringSessions.has(id)) return;
+    this.recoveringSessions.add(id);
+    try {
+      const engine = this.engines.get(id);
+      if (engine) {
+        await engine.destroy();
+        this.engines.delete(id);
+      }
+      await this.updateStatus(id, SessionStatus.DISCONNECTED);
+      await this.start(id);
+      this.logger.warn(`Recovered session after a message send timeout: ${id}`, {
+        sessionId: id,
+        action: 'send_timeout_recovery',
+      });
+    } catch (error) {
+      this.logger.error(`Failed to recover session after a message send timeout: ${id}`, error instanceof Error ? error.stack : String(error));
+    } finally {
+      this.recoveringSessions.delete(id);
+    }
+  }
   async getGroups(id: string, tenantId?: string): Promise<{ id: string; name: string }[]> {
     await this.findOne(id, tenantId); // Verify session exists and is accessible
     const engine = this.engines.get(id);

@@ -46,6 +46,7 @@ describe('MessageService', () => {
     sessionService = {
       getEngine: jest.fn().mockReturnValue(mockEngine),
       findOne: jest.fn().mockResolvedValue({ id: 'sess-1', phone: '628123456789' }),
+      recoverAfterSendTimeout: jest.fn().mockResolvedValue(undefined),
     };
 
     hookManager = {
@@ -133,6 +134,20 @@ describe('MessageService', () => {
       await expect(service.sendText('inactive', { chatId: 'test@c.us', text: 'hello' })).rejects.toThrow(
         BadRequestException,
       );
+    });
+
+    it('should recover the session when the engine send hangs', async () => {
+      jest.useFakeTimers();
+      (mockEngine.sendTextMessage as jest.Mock).mockImplementation(() => new Promise(() => undefined));
+      try {
+        const sending = service.sendText('sess-1', { chatId: 'test@c.us', text: 'hello' });
+        const expectedFailure = expect(sending).rejects.toThrow('WhatsApp send timed out');
+        await jest.advanceTimersByTimeAsync(45_000);
+        await expectedFailure;
+        expect(sessionService.recoverAfterSendTimeout).toHaveBeenCalledWith('sess-1');
+      } finally {
+        jest.useRealTimers();
+      }
     });
   });
 
